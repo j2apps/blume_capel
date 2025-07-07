@@ -15,7 +15,6 @@
 #include <stdlib.h>
 #include <cstdlib>
 
-#define NUM_THREADS 2
 #define NUM_METRO_STEPS  (3 * L_MACRO * L_MACRO)
 
 using namespace std;
@@ -286,7 +285,7 @@ int main(int argc, const char * argv[]) {
 
     auto end = chrono::high_resolution_clock::now();
     double duration = chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-    cout << duration / 1000.0 << endl;
+    cout << NUM_THREADS << " " << duration / 1000.0 << endl;
 
     // Data collection of 9*1500N steps
     /*for (int i = 0; i < 1500; i++) {
