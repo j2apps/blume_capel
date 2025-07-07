@@ -287,9 +287,9 @@ int main(int argc, const char * argv[]) {
     // Get the run and directory of clusters from command-line arguments
     int run;
     string root;
-    if (argc > 0) {
-        run = atoi(argv[0]);
-        root = argv[1];
+    if (argc > 1) {
+        run = atoi(argv[1]);
+        root = argv[2];
     }
     else {
         run = 0;

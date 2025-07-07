@@ -1,9 +1,9 @@
 module purge all
 module load gcc/12.3.0-gcc
 
-for n in 1 2 4 6 8;
+for l in 8 16 31 64 128;
 do
-	g++ ./mainomp.cpp -std=c++20 -fopenmp -DL_MACRO=32 -DNUM_THREADS=$n -o "./compiled/omptest_"$n
+	g++ ./main.cpp -std=c++20 -fopenmp -DL_MACRO=$l -DNUM_THREADS=4 -o "./compiled/bc_"$l
 done
 
 
