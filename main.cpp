@@ -4,31 +4,42 @@
 #include <math.h>
 #include <random>
 #include <stack>
-#include <time.h>
 #include <vector>
-#include <iostream>
 #include <fstream>
 #include <chrono>
 #include <ranges>
 #include <algorithm>
 #include <omp.h>
 #include <stdlib.h>
-#include <cstdlib>
 
-#ifndef L_MACRO 8
-#ifndef NUM_THREADS 1
+#ifndef L_MACRO
+#define L_MACRO 8
+#endif
+
+#ifndef NUM_THREADS
+#define NUM_THREADS 1
+#endif
+
 #define NUM_METRO_STEPS  (3 * L_MACRO * L_MACRO)
 
 using namespace std;
 
+/*
+// Ising critical
 const double B = 1 / 2.2691853;
 const double D = -1000;
 const double J = 1;
+*/
+
+// Tricritical
+const double B = 1 / 0.608;
+const double D = 1.966;
+const double J = 1;
+
 const int L = static_cast<int>(L_MACRO);
 
 random_device rd{};
 mt19937 engine{rd()};
-
 array<mt19937, NUM_THREADS> engines;
 
 static uniform_real_distribution<double> p_rand{0.0, 1.0};
@@ -223,7 +234,9 @@ vector<vector<array<int, 2>>> form_clusters(int (&lattice)[L][L], double p) {
                     }
                 }
             }
-            clusters.push_back(cluster);
+            if (cluster.size() > 1) {
+                clusters.push_back(cluster);
+            }
         }
     }
     return clusters;
@@ -271,8 +284,17 @@ int main(int argc, const char * argv[]) {
 		engines[i].seed(random_device{}());
 	}
 
-    // Get the run from command-line arguments
-    const int run = atoi(argv[1]);
+    // Get the run and directory of clusters from command-line arguments
+    int run;
+    string root;
+    if (argc > 0) {
+        run = atoi(argv[0]);
+        root = argv[1];
+    }
+    else {
+        run = 0;
+        root = "NONE";
+    }
 
     // Initialize and populate the lattice
     int lattice[L][L];
@@ -290,19 +312,15 @@ int main(int argc, const char * argv[]) {
     cout << NUM_THREADS << " " << duration / 1000.0 << endl;
 
     // Data collection of 9*1500N steps
-    /*for (int i = 0; i < 1500; i++) {
-        for (int j = 0; j < 9 * pow(L,2); j++) {
+    for (int i = 0; i < 1500; i++) {
+        for (int j = 0; j < 9 * L*L; j++) {
             step(lattice);
         }
-        // The root directory to export the clusters
-        string base = "non";
+        // Export the data to text files
         export_clusters(lattice, 1,
-            "./" + base + "/spin/" + to_string(L) + "/" + to_string(run) + "/" + to_string(i) + ".txt");
+            "./" + root + "/spin/" + to_string(L) + "/" + to_string(run) + "/" + to_string(i) + ".txt");
         export_clusters(lattice, 1 - exp (-2 * B * J),
-            "./" + base + "/fk/" + to_string(L) + "/" + to_string(run) + "/" + to_string(i) + ".txt");
-    }*/
-
-
-
+            "./" + root + "/fk/" + to_string(L) + "/" + to_string(run) + "/" + to_string(i) + ".txt");
+    }
     return 0;
 }
