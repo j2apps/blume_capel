@@ -8,7 +8,9 @@
 #include <stdint.h>
 #include <cstdint>
 #include <string>
+#include <filesystem>
 using namespace std;
+namespace fs = std::filesystem;
 
 void get_cluster_gap_sizes(vector<int>& gap_size_statistics, vector<int> cluster, const int L) {
 
@@ -66,6 +68,7 @@ vector<int> get_sample_gap_sizes(vector<int>& gap_size_statistics, const string&
     // Use a while loop together with the getline() function to read the file line by line
     while (getline (sample_file, sample_text)) {
         vector<int> cluster = splitString(sample_text);
+        if (cluster.empty()) {continue;}
         get_cluster_gap_sizes(gap_size_statistics, cluster, L);
     }
     return gap_size_statistics;
@@ -74,7 +77,7 @@ vector<int> get_sample_gap_sizes(vector<int>& gap_size_statistics, const string&
 void run_single_run(const string& input_dirname, const string& output_filename, const int L) {
     vector<int> gap_size_statistics(L/2, 0);
     int num_samples = 0;
-    for (const auto & entry : filesystem::directory_iterator(input_dirname)) {
+    for (const auto & entry : fs::directory_iterator(input_dirname)) {
         get_sample_gap_sizes(gap_size_statistics, entry.path(), L);
         num_samples ++;
     }
@@ -106,7 +109,7 @@ int main(int argc, const char * argv[]) {
     }
     const string input = argv[1];
     const string output = argv[2];
-    run_single_run(input, output, 8);
-    //run_statistics(input, output);
+    //run_single_run(input, output, 8);
+    run_statistics(input, output);
     return 0;
 }
