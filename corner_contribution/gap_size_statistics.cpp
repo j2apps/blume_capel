@@ -57,16 +57,28 @@ void get_cluster_gap_sizes(vector<int>& gap_size_statistics, vector<int> cluster
 }
 void get_cluster_gap_sizes(vector<int>& gap_size_statistics, vector<vector<int>> cluster, const int L) {
     for (vector<int> line: cluster) {
+        bool largest = false;
         // Initialize vector of gaps
         vector<int> gaps(line.size());
         // Compute the gaps, include the one between the first and last element
         for (int i = 0; i < line.size(); i++) {
-            gaps[i] = line[i] - line[(i+1) % line.size()];
-            gap_size_statistics[gaps[i] - 1] ++;
+            int gap = (line[(i+1) % line.size()] - line[i] + L) % L;
+            gaps[i] = gap;
+            if (gap > L/2) {
+                largest=true;
+            }
+            else {
+		        if (gap < 1 || gap > L/2) {
+                    cerr << gap << endl;
+                }
+                gap_size_statistics[gap - 1] ++;
+            }
         }
-        // Subtract the largest gap from the count
-        const int largest_gap = *max_element(gaps.begin(), gaps.end());
-        gap_size_statistics[largest_gap - 1] --;
+        if (!largest) {
+            // Subtract the largest gap from the count
+            const int largest_gap = *max_element(gaps.begin(), gaps.end());
+            gap_size_statistics[largest_gap - 1] --;
+        }
     }
 }
 
@@ -88,20 +100,28 @@ vector<int> splitString(const string& line) {
 
 vector<vector<int>> convert_cluster_to_lines(vector<int> cluster, const int L) {
     // Allocate result vector
-    vector<vector<int>> result(L);
+    vector<vector<int>> result;
     // Get the starting position from the cluster
     int posn = cluster[0] / L;
-    int line = 0;
+    vector<int> line;
     for (int i = 1; i < cluster.size(); i++) {
         // Find the updated posn based on the gap
         posn += cluster[i];
         // If the posn is on the next line, update line and posn
         if (posn >= L) {
-            line ++;
+            // If the line has more than one site, append it to result
+            if (line.size() > 1) {
+                result.push_back(line);
+            }
+            line.clear();
             posn %= L;
         }
-        // Append posns to the appropriate line
-        result[line].push_back(posn);
+        // Append posn to the appropriate line
+        line.push_back(posn);
+    }
+    // Append remaining line
+    if (line.size() > 1) {
+        result.push_back(line);
     }
     return result;
 }
