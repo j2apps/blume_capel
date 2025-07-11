@@ -1,12 +1,12 @@
 #!/bin/bash
 #SBATCH --account=p32813
 #SBATCH --error=error.err
-#SBATCH --partition=normal
+#SBATCH --partition=short
 #SBATCH --nodes=2
 #SBATCH --ntasks-per-node=10
-#SBATCH -t 48:00:00
+#SBATCH -t 4:00:00
 #SBATCH --mem=8M
-#SBATCH --job-name="gap"
+#SBATCH --job-name="gap2"
 #SBATCH --output=outlog
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=jonahkim2028@u.northwestern.edu
