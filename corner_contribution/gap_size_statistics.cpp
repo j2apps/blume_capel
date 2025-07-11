@@ -9,6 +9,8 @@
 #include <cstdint>
 #include <string>
 #include <filesystem>
+#include <string>
+#include <array>
 using namespace std;
 namespace fs = std::filesystem;
 
@@ -34,7 +36,14 @@ void get_cluster_gap_sizes(vector<int>& gap_size_statistics, vector<int> cluster
         }
         // Otherwise, add the gap to the statistics
         else {
-            if (newline && gap >= L/2) {gap = L - gap;}
+			if (gap >= L/2) {
+				if (newline) {
+					gap = L - gap;
+				}
+				else {
+					continue;
+				}
+			}
             gap_size_statistics[gap-1] += 1;
             newline = false;
         }
@@ -56,7 +65,7 @@ vector<int> splitString(const string& line) {
     return result_int;
 }
 
-vector<int> get_sample_gap_sizes(vector<int>& gap_size_statistics, const string& filename, const int L) {
+void get_sample_gap_sizes(vector<int>& gap_size_statistics, const string& filename, const int L) {
     ifstream sample_file(filename);
     if (sample_file.is_open()) {
         // File opened successfully, proceed with reading
@@ -71,14 +80,14 @@ vector<int> get_sample_gap_sizes(vector<int>& gap_size_statistics, const string&
         if (cluster.empty()) {continue;}
         get_cluster_gap_sizes(gap_size_statistics, cluster, L);
     }
-    return gap_size_statistics;
 }
 
 void run_single_run(const string& input_dirname, const string& output_filename, const int L) {
     vector<int> gap_size_statistics(L/2, 0);
     int num_samples = 0;
     for (const auto & entry : fs::directory_iterator(input_dirname)) {
-        get_sample_gap_sizes(gap_size_statistics, entry.path(), L);
+	string filepath = entry.path().string();
+        get_sample_gap_sizes(gap_size_statistics, filepath, L);
         num_samples ++;
     }
 
@@ -88,18 +97,25 @@ void run_single_run(const string& input_dirname, const string& output_filename, 
     }
 
     ofstream file;
+	cout << output << "|" << output_filename << endl;
     file.open(output_filename);
     file << output << endl;
     file.close();
 }
+
 void run_statistics(const string& input_root, const string& output_root) {
     for (int l: {8, 16, 32, 64, 128}) {
-        #pragma omp parallel for num_threads(4)
+	array<string, 100> input_dirnames;
+	array<string, 100> output_filenames;
+	for (int run=0; run<100; run++) {
+		input_dirnames[run] = input_root + "/" + to_string(l) + "/" + to_string(run);
+		output_filenames[run] = output_root + "/" + to_string(l) + "/" + to_string(run) + ".txt";
+	}
+        #pragma omp parallel for num_threads(10)
         for (int run = 0; run < 100; run++) {
-            const string input_dirname = "./" + input_root + "/" + to_string(l) + "/" + to_string(run);
-            const string output_filename = "./" + output_root + "/" + to_string(l) + "/" + to_string(run);
-            run_single_run(input_dirname, output_filename, l);
+            run_single_run(input_dirnames[run], output_filenames[run], l);
         }
+	
     }
 }
 int main(int argc, const char * argv[]) {
@@ -109,7 +125,6 @@ int main(int argc, const char * argv[]) {
     }
     const string input = argv[1];
     const string output = argv[2];
-    //run_single_run(input, output, 8);
     run_statistics(input, output);
     return 0;
 }
