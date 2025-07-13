@@ -159,7 +159,8 @@ void step(int (&lattice)[L][L]) {
     for (int i = 0; i < 3; i++) {
         for (int j = 0; j < L; j++) {
             for (int k = 0; k < L; k++) {
-                metropolis(lattice, {j, k}, flip_rands[i], p_rands[i]);
+                const int id = i*L*L + j*L + k;
+                metropolis(lattice, {j, k}, flip_rands[id], p_rands[id]);
             }
         }
     }
