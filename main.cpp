@@ -337,16 +337,16 @@ int main(int argc, const char * argv[]) {
     int lattice[L][L];
     generate_ising_lattice(lattice);
 
-    auto start = chrono::high_resolution_clock::now();
+    //auto start = chrono::high_resolution_clock::now();
 
     // Burn in of 1500N steps
     for (int i = 0; i < 1500 * L*L; i++) {
         step(lattice);
     }
 
-    auto end = chrono::high_resolution_clock::now();
+    /*auto end = chrono::high_resolution_clock::now();
     double duration = chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-    cout << NUM_THREADS << " " << duration / 1000.0 << endl;
+    cout << NUM_THREADS << " " << duration / 1000.0 << endl;*/
 
     // Data collection of 9*1500N steps
     for (int i = 0; i < 1500; i++) {
