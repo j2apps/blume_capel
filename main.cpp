@@ -24,18 +24,18 @@
 
 using namespace std;
 
-/*
+
 // Ising critical
 const double B = 1 / 2.2691853;
 const double D = -1000;
 const double J = 1;
-*/
 
+/*
 // Tricritical
 const double B = 1 / 0.608;
 const double D = 1.966;
 const double J = 1;
-
+*/
 const int L = static_cast<int>(L_MACRO);
 
 random_device rd{};
@@ -47,8 +47,8 @@ static uniform_int_distribution<int> posn_rand{0, L-1};
 static uniform_int_distribution<int> fill_rand{-1, 1};
 
 array<array<int, 2>, 4> nearest_neighbors(array<int,2> posn) {
-    // Finds the indices of the 4 nearets neighbors
-    array<array<int, 2>, 4> neighbors = {{
+    // Finds the indices of the 4 nearest neighbors
+    const array<array<int, 2>, 4> neighbors = {{
         {(posn[0] + 1) % L, posn[1]},
         {(posn[0] - 1 + L) % L, posn[1]},
         {posn[0], (posn[1] + 1) % L},
@@ -60,7 +60,7 @@ array<array<int, 2>, 4> nearest_neighbors(array<int,2> posn) {
 array<int, 4> nearest_neighbor_vals(array<int,2> posn, int (& lattice)[L][L]) {
     //Gets the values of the 4 nearest neighbors
     array<array<int, 2>, 4> neighbors = nearest_neighbors(posn);
-    array<int, 4> vals = {0,0,0,0};
+    array<int, 4> vals;
     for (int i = 0; i < 4; i++) {
         vals[i] = lattice[neighbors[i][0]][neighbors[i][1]];
     }
@@ -79,7 +79,7 @@ void metropolis(int (& lattice)[L][L], array<int,2> posn, int flip, double p) {
 
     // Calculate the change in energy (from the blume-capel hamiltonian)
     int couple = accumulate(vals.begin(), vals.end(), 0);
-    int delta_e = couple * (proposal - current) + D * (proposal*proposal - current*current);
+    int delta_e = J * couple * (proposal - current) + D * (proposal*proposal - current*current);
 
     // Accept/reject proposal based on the change in energy
     if (exp (-B * delta_e) > p) {
@@ -93,7 +93,6 @@ void wolff(int (&lattice)[L][L]) {
 
     // Declare stack and cluster
     stack<array<int,2>> st;
-    stack<array<int,2>> cluster;
 
     // Start a count, so that empty lattices do not get stuck
     int count = 0;
@@ -114,7 +113,6 @@ void wolff(int (&lattice)[L][L]) {
     // Add the site to the stack and cluster
     lattice[site[0]][site[1]] = -value;
     st.push(site);
-    cluster.push(site);
 
     // Loop through the stack
     while (!st.empty()) {
@@ -126,7 +124,6 @@ void wolff(int (&lattice)[L][L]) {
         for (int i = 0; i < 4; i++) {
             if (lattice[neighbors[i][0]][neighbors[i][1]] == value && p_rand(engine) < p) {
                 st.push(neighbors[i]);
-                cluster.push(neighbors[i]);
                 lattice[neighbors[i][0]][neighbors[i][1]] = -value;
             }
         }
@@ -173,6 +170,19 @@ void generate_lattice(int (& lattice)[L][L]) {
     for (int i = 0; i < L; i++) {
         for (int j = 0; j < L; j++) {
             lattice[i][j] = fill_rand(engine);
+        }
+    }
+}
+
+void generate_ising_lattice(int (& lattice)[L][L]) {
+    static uniform_int_distribution<int> ising_fill_rand{-1, 0};
+    for (int i = 0; i < L; i++) {
+        for (int j = 0; j < L; j++) {
+            int fill = ising_fill_rand(engine);
+            if (fill == 0) {
+                fill = 1;
+            }
+            lattice[i][j] = fill;
         }
     }
 }
@@ -278,7 +288,34 @@ void export_clusters(int (&lattice)[L][L], double p, string filename) {
     file.close();
 }
 
+int test_suite() {
+    int lattice[L][L];
+    generate_lattice(lattice);
+    for (int i = 0; i < L; i++) {
+        for (int j = 0; j < L; j++) {
+            cout << lattice[i][j] << " ";
+        }
+        cout<< endl;
+    }
+    cout << endl;
+    for (int i = 0; i < L; i++) {
+        for (int j = 0; j < L; j++) {
+            array<array<int,2>, 4> neighbors = nearest_neighbors({i, j});
+            array<int, 4> vals = nearest_neighbor_vals({i, j}, lattice);
+            cout << to_string(i) + ", " + to_string(j) + ":\n";
+            for (int k=0; k<4; k++) {
+                cout << vals[k] << " | " << neighbors[k][0] << ", " << neighbors[k][1] << endl;
+            }
+            cout << endl;
+
+        }
+    }
+    return 0;
+}
+
 int main(int argc, const char * argv[]) {
+    // test_suite();
+    // return 0;
     // Seed the thread-specific rngs
 	for (int i = 0; i < NUM_THREADS; i++) {
 		engines[i].seed(random_device{}());
@@ -298,7 +335,7 @@ int main(int argc, const char * argv[]) {
 
     // Initialize and populate the lattice
     int lattice[L][L];
-    generate_lattice(lattice);
+    generate_ising_lattice(lattice);
 
     auto start = chrono::high_resolution_clock::now();
 
