@@ -151,14 +151,17 @@ void step(int (&lattice)[L][L]) {
         #pragma omp for schedule(static)
         for (int i=0; i < NUM_METRO_STEPS; i++) {
             // Use local distributions and thread-specific engines to generate random numbers
-            posn_rands[i] = {lposn_rand(engines[tid]), lposn_rand(engines[tid])};
             flip_rands[i] = lflip_rand(engines[tid]);
             p_rands[i] = lp_rand(engines[tid]);
         }
     }
     // Perform 3N single-site Metropolis steps and L single-cluster Wolff steps
-    for (int i = 0; i < NUM_METRO_STEPS; i++) {
-        metropolis(lattice, posn_rands[i], flip_rands[i], p_rands[i]);
+    for (int i = 0; i < 3; i++) {
+        for (int j = 0; j < L; j++) {
+            for (int k = 0; k < L; k++) {
+                metropolis(lattice, {j, k}, flip_rands[i], p_rands[i]);
+            }
+        }
     }
     for (int i = 0; i < L; i++) {
         wolff(lattice);
