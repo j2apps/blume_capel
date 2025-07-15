@@ -36,6 +36,7 @@ const double B = 1 / 0.608;
 const double D = 1.966;
 const double J = 1;
 */
+
 const int L = static_cast<int>(L_MACRO);
 
 random_device rd{};
@@ -91,7 +92,7 @@ void wolff(int (&lattice)[L][L]) {
     // Probability of new bonds in a cluster being formed
     double p = 1 - exp (-2 * B * J);
 
-    // Declare stack and cluster
+    // Declare stack
     stack<array<int,2>> st;
 
     // Start a count, so that empty lattices do not get stuck
@@ -137,7 +138,7 @@ void step(int (&lattice)[L][L]) {
     array<double, NUM_METRO_STEPS> p_rands;
 
     // Generate random numbers in parallel
-    #pragma omp parallel num_threads(NUM_THREADS)
+    //#pragma omp parallel num_threads(NUM_THREADS)
     {
         // Create thread local distributions
         thread_local uniform_real_distribution<double> lp_rand{0.0, 1.0};

@@ -58,27 +58,25 @@ void get_cluster_gap_sizes(vector<int>& gap_size_statistics, vector<int> cluster
 void get_cluster_gap_sizes(vector<int>& gap_size_statistics, vector<vector<int>> cluster, const int L) {
     for (vector<int> line: cluster) {
         bool largest = false;
-        // Initialize vector of gaps
-        vector<int> gaps(line.size());
+
+        // Special case for only 2 sites
+        if (line.size() == 2) {
+            int gap = line[1] - line[0];
+            gap = max(gap, L - gap);
+            gap_size_statistics[gap-1] ++;
+            continue;
+        }
+        // If more than 2 sites, procede
         // Compute the gaps, include the one between the first and last element
-        for (int i = 0; i < line.size(); i++) {
-            int gap = (line[(i+1) % line.size()] - line[i] + L) % L;
-            gaps[i] = gap;
-            if (gap > L/2) {
-                largest=true;
-            }
-            else {
-		        if (gap < 1 || gap > L/2) {
-                    cerr << gap << endl;
-                }
-                gap_size_statistics[gap - 1] ++;
-            }
+        for (int i = 0; i < line.size() - 1; i++) {
+            int gap = line[i+1] - line[i];
+            gap = max(gap, L - gap);
+            gap_size_statistics[gap-1] ++;
         }
-        if (!largest) {
-            // Subtract the largest gap from the count
-            const int largest_gap = *max_element(gaps.begin(), gaps.end());
-            gap_size_statistics[largest_gap - 1] --;
-        }
+        // Get the last and first as well
+        int gap = line[0] - line[line.size() - 1] + L;
+        gap = max(gap, L - gap);
+        gap_size_statistics[gap-1] ++;
     }
 }
 
