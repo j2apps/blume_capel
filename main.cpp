@@ -72,15 +72,15 @@ array<int, 4> nearest_neighbor_vals(array<int,2> posn, int (& lattice)[L][L]) {
 void metropolis(int (& lattice)[L][L], array<int,2> posn, int flip, double p) {
     // Note the current value, and create a random proposa
     // Proposal have p=0.5 of taking on either of the other values
-    int current = lattice[posn[0]][posn[1]];
-    int proposal = (current + 2 + flip) % 3 - 1;
+    const int current = lattice[posn[0]][posn[1]];
+    const int proposal = (current + 2 + flip) % 3 - 1;
 
     // Get the values of the 4 nearest neighbors
     array<int, 4> vals = nearest_neighbor_vals(posn, lattice);
 
     // Calculate the change in energy (from the blume-capel hamiltonian)
-    int couple = accumulate(vals.begin(), vals.end(), 0);
-    int delta_e = J * couple * (proposal - current) + D * (proposal*proposal - current*current);
+    const int couple = accumulate(vals.begin(), vals.end(), 0);
+    const int delta_e = J * couple * (proposal - current) + D * (proposal*proposal - current*current);
 
     // Accept/reject proposal based on the change in energy
     if (exp (-B * delta_e) > p) {
@@ -198,7 +198,13 @@ int get_posn_id(array<int,2> posn) {
     return posn[0] * L + posn[1];
 };
 
-vector<vector<array<int, 2>>> form_clusters(int (&lattice)[L][L], double p) {
+class Cluster {
+public:
+    bool sign;
+    vector<int> sites;
+};
+
+vector<Cluster> form_clusters(int (&lattice)[L][L], double p) {
     // Copy lattice
     int lattice2[L][L];
     for (int i = 0; i < L; i++) {
@@ -208,7 +214,7 @@ vector<vector<array<int, 2>>> form_clusters(int (&lattice)[L][L], double p) {
     }
 
     // List of clusters
-    vector<vector<array<int, 2>>> clusters;
+    vector<Cluster> clusters;
 
     // Loop through every site in the lattice
     for (int i = 0; i < L; i++) {
@@ -220,14 +226,15 @@ vector<vector<array<int, 2>>> form_clusters(int (&lattice)[L][L], double p) {
 
             // Stack of sites and cluster
             stack<array<int, 2>> st;
-            vector<array<int, 2>> cluster;
             st.push({i, j});
-            cluster.push_back({i, j});
+
+            Cluster cluster;
+            cluster.sign = value == 1;
+            cluster.sites.push_back(get_posn_id({i, j}));
 
             // Set sites that are added to a cluster to 0 so they are not added again
             lattice2[i][j] = 0;
-
-            array<int, 2> site{};
+            array<int, 2> site;
 
             // Go through stack and look at all nearest neighbors
             while (!st.empty()) {
@@ -242,14 +249,14 @@ vector<vector<array<int, 2>>> form_clusters(int (&lattice)[L][L], double p) {
                     if (lattice2[neighbor[0]][neighbor[1]] == value && p_rand(engine) < p) {
                         // If same value and probability check, add to cluster and stack
                         st.push(neighbor);
-                        cluster.push_back(neighbor);
+                        cluster.sites.push_back(get_posn_id(neighbor));
 
                         // Set sites that are added to a cluster to 0 so they are not added again
                         lattice2[neighbor[0]][neighbor[1]] = 0;
                     }
                 }
             }
-            if (cluster.size() > 1) {
+            if (cluster.sites.size() > 1) {
                 clusters.push_back(cluster);
             }
         }
@@ -257,32 +264,34 @@ vector<vector<array<int, 2>>> form_clusters(int (&lattice)[L][L], double p) {
     return clusters;
 }
 
-bool sort_key(array<int, 2> a, array<int,2> b) {
+bool sort_key(int a, int b) {
     // Sorts coordinates by their ids
-    return get_posn_id(a) < get_posn_id(b);
+    return a < b;
 }
 
-void export_clusters(int (&lattice)[L][L], double p, string filename) {
+void export_clusters(int (&lattice)[L][L], double p,  bool sign, string filename) {
     // Exports clusters to a file
 
     // Get the clusters using form_clusters
-    vector<vector<array<int, 2>>> clusters = form_clusters(lattice, p);
+    vector<Cluster> clusters = form_clusters(lattice, p);
 
     // Initialize output
     string lines;
 
     // Iterate through every cluster
-    for (vector cluster : clusters) {
+    for (Cluster cluster : clusters) {
         // Sort clusters
-        sort(cluster.begin(), cluster.end(), sort_key);
+        sort(cluster.sites.begin(), cluster.sites.end(), sort_key);
         string line;
-
+        // Include sign if specified
+        if (sign) {
+            line = cluster.sign ? "+ " : "- ";
+        }
         // Write each cluster in gap format as a single line deliminated by spaces
         int previous = 0;
-        for (array posn : cluster) {
-            int posn_id = get_posn_id(posn);
-            line += to_string(posn_id - previous) + " ";
-            previous = posn_id;
+        for (int posn : cluster.sites) {
+            line += to_string(posn - previous) + " ";
+            previous = posn;
         }
         lines += line + "\n";
     }
@@ -359,9 +368,9 @@ int main(int argc, const char * argv[]) {
             step(lattice);
         }
         // Export the data to text files
-        export_clusters(lattice, 1,
+        export_clusters(lattice, 1, true,
             "./" + root + "/spin/" + to_string(L) + "/" + to_string(run) + "/" + to_string(i) + ".txt");
-        export_clusters(lattice, 1 - exp (-2 * B * J),
+        export_clusters(lattice, 1 - exp (-2 * B * J), true,
             "./" + root + "/fk/" + to_string(L) + "/" + to_string(run) + "/" + to_string(i) + ".txt");
     }
     return 0;
