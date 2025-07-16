@@ -89,7 +89,9 @@ vector<int> splitString(const string& line) {
     while (getline(ss, segment, ' ')) {
         result.push_back(segment);
     }
-
+    if (result[0] == "+" || result[0] == "-") {
+        result.erase(result.begin());
+    }
     vector<int> result_int;
     transform(result.begin(), result.end(), back_inserter(result_int),
                    [](const string& s) { return stoi(s); });
