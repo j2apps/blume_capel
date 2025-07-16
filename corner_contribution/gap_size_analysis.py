@@ -20,7 +20,7 @@ def get_gap_array(filename):
 
 
 if __name__ == "__main__":
-    root = "./corner_contribution/data/ising/spin"
+    root = "./corner_contribution/data/ising2/spin"
     # Iterate through each L value
     for l in (8, 16, 32, 64, 128):
         corner_contributions = list()

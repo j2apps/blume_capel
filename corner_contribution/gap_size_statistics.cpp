@@ -62,7 +62,7 @@ void get_cluster_gap_sizes(vector<int>& gap_size_statistics, vector<vector<int>>
         // Special case for only 2 sites
         if (line.size() == 2) {
             int gap = line[1] - line[0];
-            gap = max(gap, L - gap);
+            gap = min(gap, L - gap);
             gap_size_statistics[gap-1] ++;
             continue;
         }
@@ -70,12 +70,12 @@ void get_cluster_gap_sizes(vector<int>& gap_size_statistics, vector<vector<int>>
         // Compute the gaps, include the one between the first and last element
         for (int i = 0; i < line.size() - 1; i++) {
             int gap = line[i+1] - line[i];
-            gap = max(gap, L - gap);
+            gap = min(gap, L - gap);
             gap_size_statistics[gap-1] ++;
         }
         // Get the last and first as well
-        int gap = line[0] - line[line.size() - 1] + L;
-        gap = max(gap, L - gap);
+        int gap = line[line.size() - 1] - line[0];
+        gap = min(gap, L - gap);
         gap_size_statistics[gap-1] ++;
     }
 }
@@ -168,7 +168,7 @@ void run_single_run(const string& input_dirname, const string& output_filename, 
 }
 
 void run_statistics(const string& input_root, const string& output_root) {
-    for (int l: {8, 16, 32, 64, 128}) {
+    for (int l: {8, 16, 32, 64}) {
         // Write string ahead of time to avoid race conditions
 	    array<string, 100> input_dirnames;
 	    array<string, 100> output_filenames;
