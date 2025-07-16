@@ -8,13 +8,15 @@ def get_coords(id, L):
 if __name__ == "__main__":
 
     filename = sys.argv[1]
-    L = sys.argv[2]
+    L = int(sys.argv[2])
     file = open(filename)
     lattice = np.zeros((L,L))
 
-    for line in file:
+    for line in file.readlines():
         val = 1 if (line[0] == "+") else -1
-        cluster = line.split(" ")[1:]
+        cluster = [int(site) for site in line.split(" ")[1:] if site != "\n"]
+        if (len(cluster) == 0):
+            continue
         sites = list()
         prev = cluster[0]
         sites.append(prev)
@@ -25,9 +27,10 @@ if __name__ == "__main__":
             prev = curr
 
         for site in cluster:
-            lattice[get_coords[site]] = val;
+            lattice[get_coords(site, L)] = val;
 
     plt.imshow(lattice, cmap='viridis')
+    plt.save_fig('im.png')
 
 
 
