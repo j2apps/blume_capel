@@ -1,0 +1,36 @@
+from matplotlib import pyplot as plt
+import numpy as np
+import sys
+
+def get_coords(id, L):
+    return (id % L, id // L)
+
+if __name__ == "__main__":
+
+    filename = sys.argv[1]
+    L = sys.argv[2]
+    file = open(filename)
+    lattice = np.zeros((L,L))
+
+    for line in file:
+        val = 1 if (line[0] == "+") else -1
+        cluster = line.split(" ")[1:]
+        sites = list()
+        prev = cluster[0]
+        sites.append(prev)
+
+        for gap in cluster[1:]:
+            curr = prev + gap
+            sites.append(curr)
+            prev = curr
+
+        for site in cluster:
+            lattice[get_coords[site]] = val;
+
+    plt.imshow(lattice, cmap='viridis')
+
+
+
+
+
+
