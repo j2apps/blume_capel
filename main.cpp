@@ -47,6 +47,15 @@ static uniform_real_distribution<double> p_rand{0.0, 1.0};
 static uniform_int_distribution<int> posn_rand{0, L-1};
 static uniform_int_distribution<int> fill_rand{-1, 1};
 
+int get_posn_id(array<int,2> posn) {
+    // Converts posn coord, (x, y), to posn id
+    return posn[0] * L + posn[1];
+};
+
+array<int, 2> get_posn_from_id(int id) {
+    return {id / L, id % L};
+}
+
 array<array<int, 2>, 4> nearest_neighbors(array<int,2> posn) {
     // Finds the indices of the 4 nearest neighbors
     const array<array<int, 2>, 4> neighbors = {{
@@ -80,7 +89,7 @@ void metropolis(int (& lattice)[L][L], array<int,2> posn, int flip, double p) {
 
     // Calculate the change in energy (from the blume-capel hamiltonian)
     const int couple = accumulate(vals.begin(), vals.end(), 0);
-    const int delta_e = J * couple * (proposal - current) + D * (proposal*proposal - current*current);
+    const int delta_e = - J * couple * (proposal - current) + D * (proposal*proposal - current*current);
 
     // Accept/reject proposal based on the change in energy
     if (exp (-B * delta_e) > p) {
@@ -93,7 +102,7 @@ void wolff(int (&lattice)[L][L]) {
     double p = 1 - exp (-2 * B * J);
 
     // Declare stack
-    stack<array<int,2>> st;
+    vector<int> st;
 
     // Start a count, so that empty lattices do not get stuck
     int count = 0;
@@ -113,18 +122,18 @@ void wolff(int (&lattice)[L][L]) {
     // Flip the value at that site
     // Add the site to the stack and cluster
     lattice[site[0]][site[1]] = -value;
-    st.push(site);
+    st.push_back(get_posn_id(site));
 
     // Loop through the stack
     while (!st.empty()) {
-        site = st.top();
-        st.pop();
+        site = get_posn_from_id(st[0]);
+        st.pop_back();
 
         // Add nearest neighbors with same value with probability p
         array<array<int,2>,4> neighbors = nearest_neighbors(site);
         for (int i = 0; i < 4; i++) {
             if (lattice[neighbors[i][0]][neighbors[i][1]] == value && p_rand(engine) < p) {
-                st.push(neighbors[i]);
+                st.push_back(get_posn_id(neighbors[i]));
                 lattice[neighbors[i][0]][neighbors[i][1]] = -value;
             }
         }
@@ -191,12 +200,6 @@ void generate_ising_lattice(int (& lattice)[L][L]) {
         }
     }
 }
-
-
-int get_posn_id(array<int,2> posn) {
-    // Converts posn coord, (x, y), to posn id
-    return posn[0] * L + posn[1];
-};
 
 class Cluster {
 public:
