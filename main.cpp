@@ -80,7 +80,7 @@ void metropolis(int (& lattice)[L][L], array<int,2> posn, int flip, double p) {
 
     // Calculate the change in energy (from the blume-capel hamiltonian)
     const int couple = accumulate(vals.begin(), vals.end(), 0);
-    const int delta_e = J * couple * (proposal - current) + D * (proposal*proposal - current*current);
+    const int delta_e = -J * couple * (proposal - current) + D * (proposal*proposal - current*current);
 
     // Accept/reject proposal based on the change in energy
     if (exp (-B * delta_e) > p) {
