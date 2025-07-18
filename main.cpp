@@ -308,7 +308,7 @@ vector<Cluster> form_clusters(int (&lattice)[L][L], double p) {
                     }
                 }
             }
-            if (cluster.sites.size() > 1) {
+            if (cluster.sites.size() > 0) {
                 clusters.push_back(cluster);
             }
         }
@@ -417,14 +417,13 @@ int main(int argc, const char * argv[]) {
     auto start = chrono::high_resolution_clock::now();
 
     // Burn in of 1500N steps
-    for (int i = 0; i < L; i++) {
+    for (int i = 0; i < 1500*L*L; i++) {
         step(lattice);
     }
-    return 0;
 
     auto end = chrono::high_resolution_clock::now();
     double duration = chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-    cout << NUM_THREADS << " " << duration / 1000.0 << endl;
+    cout << to_string(L) + "/" + to_string(run) << ": " << duration / 1000.0 << endl;
 
     // Data collection of 9*1500N steps
     for (int i = 0; i < 1500; i++) {

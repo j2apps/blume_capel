@@ -85,11 +85,10 @@ vector<int> splitString(const string& line) {
     vector<string> result;
     stringstream ss(line);
     string segment;
-
     while (getline(ss, segment, ' ')) {
         result.push_back(segment);
     }
-    if (result[0] == "+" || result[0] == "-") {
+    if (!result.empty()) {
         result.erase(result.begin());
     }
     vector<int> result_int;
@@ -170,7 +169,7 @@ void run_single_run(const string& input_dirname, const string& output_filename, 
 }
 
 void run_statistics(const string& input_root, const string& output_root) {
-    for (int l: {8, 16, 32, 64}) {
+    for (int l: {16, 32, 64}) {
         // Write string ahead of time to avoid race conditions
 	    array<string, 100> input_dirnames;
 	    array<string, 100> output_filenames;
