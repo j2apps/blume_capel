@@ -20,15 +20,17 @@ def get_gap_array(filename):
 
 
 if __name__ == "__main__":
-    root = "./corner_contribution/data/ising2/spin"
+    root = "./corner_contribution/data/ising7-17/fk"
     # Iterate through each L value
-    for l in (8, 16, 32, 64, 128):
+    for l in (16, 32, 64):
         corner_contributions = list()
         # Find all files in the directory
         with os.scandir(f"{root}/{l}") as entries:
             for entry in entries:
                 # Get the stats and number of samples from each file
                 gap_size_statistics, num_samples = get_gap_array(entry)
+                if (num_samples==0):
+                    continue
                 # Get the corner contribution and append
                 corner_contribution = get_corner_contribution(gap_size_statistics, num_samples, l, l//2)
                 corner_contributions.append(corner_contribution)
@@ -46,7 +48,7 @@ FK
 64 0.07734922607421875 0.00011746424799293661
 128 0.06287702882456911 0.00015511300804922631
 
-SPIN
+SPIN 
 8 1.3505504166666666 0.0052778585021737235
 16 1.9850557291666666 0.008406295226384416
 32 2.7647586979166667 0.004953275554442441
@@ -54,5 +56,17 @@ SPIN
 128 6.983371966802 0.015233393727754969
 '''
 
+'''
+7/18
+Spin
+16 0.5639980598958333 0.0016901015270230546
+32 0.6043296451822916 0.002448022285096406
+64 0.6457432003513394 0.02005631604510936
+
+FK
+16 0.5420662369791667 0.0009530617993024364
+32 0.5986309342447916 0.001699674359413443
+64 0.6585204060529553 0.021701361175327578
+'''
 
 
