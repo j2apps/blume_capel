@@ -30,10 +30,10 @@ int count_size(const string& line) {
     if (count > 1) {
         return count - 1;
     }
-
+    return count;
 }
 
-void get_sample_statistics(const string& filename) {
+int get_sample_statistics(const string& filename) {
     ifstream sample_file(filename);
     if (sample_file.is_open()) {
         // File opened successfully, proceed with reading
@@ -44,7 +44,7 @@ void get_sample_statistics(const string& filename) {
     vector<int> sizes;
     // Use a while loop together with the getline() function to read the file line by line
     while (getline(sample_file, sample_text)) {
-        size = count_size(sample_text);
+        int size = count_size(sample_text);
         if (size == 0) {
         continue;
         }
@@ -54,11 +54,11 @@ void get_sample_statistics(const string& filename) {
     for (int size: sizes) {
         s += size*size;
     }
-    s -= max(sizes);
+    s -= *max_element(sizes.begin(), sizes.end());
     return s;
 }
 
-int run_single_run(const string& input_dirname, const string& output_filename, const int L) {
+int run_single_run(const string& input_dirname) {
     // Initialize gap_size_statistics with size L/2, since there are L/2 possible gap sizes
     int s_total;
     int num_samples = 0;
@@ -107,8 +107,7 @@ void run_statistics(const string& input_root, const string& output_root) {
         vector<int> statistics(100);
         #pragma omp parallel for num_threads(NUM_THREADS)
         for (int run = 0; run < 100; run++) {
-            s = run_single_run(input_dirnames[run], output_filenames[run], l);
-            statistics[run] = s;
+            statistics[run] = run_single_run(input_dirnames[run]);
         }
         output += to_string(l) + ": " + to_string(mean(statistics)) + " +- " + to_string(stdev(statistics)) + "\n";
     }
