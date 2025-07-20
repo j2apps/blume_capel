@@ -30,7 +30,7 @@ int count_size(const string& line) {
     if (count > 1) {
         return count - 1;
     }
-    return count;
+    return 0;
 }
 
 int get_sample_statistics(const string& filename) {
@@ -50,11 +50,13 @@ int get_sample_statistics(const string& filename) {
         }
         sizes.push_back(size);
     }
+
     int s = 0;
     for (int size: sizes) {
         s += size*size;
     }
-    s -= *max_element(sizes.begin(), sizes.end());
+    const int max = *max_element(sizes.begin(), sizes.end());
+    s -=  max*max;
     return s;
 }
 
@@ -86,6 +88,7 @@ double stdev(const std::vector<int>& data) {
 
     return sqrt(standardDeviation / data.size());
 }
+
 double mean(const std::vector<int>& data) {
     double sum = 0.0;
     for (int value : data) {
