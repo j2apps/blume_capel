@@ -1,6 +1,5 @@
 #include <iostream>
 #include <array>
-#include <numeric>
 #include <math.h>
 #include <random>
 #include <stack>
@@ -11,7 +10,6 @@
 #include <algorithm>
 #include <omp.h>
 #include <stdlib.h>
-#include <queue>
 
 #ifndef L_MACRO
 #define L_MACRO 8
@@ -21,24 +19,32 @@
 #define NUM_THREADS 1
 #endif
 
-#define NUM_METRO_STEPS  (3 * L_MACRO * L_MACRO)
-
 using namespace std;
 
-
+/*
 // Ising critical
 const double B = 1 / 2.2691853;
 const double D = -1000;
 const double J = 1;
+*/
 
-/*
 // Tricritical
+
 const double B = 1 / 0.608;
 const double D = 1.966;
 const double J = 1;
+
+/*
+const double B = 1 / 0.574;
+const double D = 1;
+const double J = 1;
 */
 
+
 constexpr int L = static_cast<int>(L_MACRO);
+constexpr int N = L*L;
+constexpr int dx[4] = {1, L-1, 0, 0};
+constexpr int dy[4] = {0, 0, 1, L-1};
 
 random_device rd{};
 mt19937 engine{rd()};
@@ -47,38 +53,30 @@ array<mt19937, NUM_THREADS> engines;
 static uniform_real_distribution<double> p_rand{0.0, 1.0};
 static uniform_int_distribution<int> posn_rand{0, L-1};
 static uniform_int_distribution<int> fill_rand{-1, 1};
+static uniform_int_distribution<int> flip_rand{0, 1};
 
-constexpr int RNG_BATCH_SIZE = 2*L*L*L;
+constexpr int RNG_BATCH_SIZE = 2*L*L*L + 3*L;
+constexpr int NUM_METRO_STEPS = 3*N;
 array<double, RNG_BATCH_SIZE> rng_buffer;
+array<int, NUM_METRO_STEPS> flip_buffer;
 int rng_index = RNG_BATCH_SIZE;
+int flip_index = NUM_METRO_STEPS;
 
 // Lookup Tables
 int modL[2*L];
 array<pair<int, int>, L*L> id_to_xy;
 
-double get_next_random() {
-    if (rng_index >= RNG_BATCH_SIZE) {
-        #pragma omp parallel num_threads(NUM_THREADS)
-        {
-            // Create thread local distributions
-            thread_local uniform_real_distribution<double> lp_rand{0.0, 1.0};
+struct spin {
+    unsigned int value : 2; // 'value' will occupy 2 bits
+};
 
-            // Split threads across for loop
-            int tid = omp_get_thread_num();
-            #pragma omp for schedule(static)
-            for (int i = 0; i < RNG_BATCH_SIZE; ++i) {
-                rng_buffer[i] = lp_rand(engines[tid]);
-            }
-        }
-        rng_index = 0;
-    }
-    return rng_buffer[rng_index++];
-}
 void refill_random() {
-    #pragma omp parallel num_threads(NUM_THREADS)
+    //OPTION 1
+    //#pragma omp parallel num_threads(NUM_THREADS)
     {
         // Create thread local distributions
         thread_local uniform_real_distribution<double> lp_rand{0.0, 1.0};
+        thread_local uniform_int_distribution<int> lflip_rand{0, 1};
 
         // Split threads across for loop
         int tid = omp_get_thread_num();
@@ -86,8 +84,14 @@ void refill_random() {
         for (int i = 0; i < rng_index; ++i) {
             rng_buffer[i] = lp_rand(engines[tid]);
         }
+        #pragma omp barrier
+        #pragma omp for schedule(static)
+        for (int i = 0; i < flip_index; ++i) {
+            flip_buffer[i] = lflip_rand(engines[tid]);
+        }
     }
     rng_index = 0;
+    flip_index = 0;
 }
 
 int get_posn_id(array<int,2> posn) {
@@ -122,122 +126,94 @@ array<int, 4> nearest_neighbor_vals(array<int,2> posn, int (& lattice)[L][L]) {
 }
 
 
-void metropolis(int (& lattice)[L][L], array<int,2> posn, int flip, double p) {
-    // Note the current value, and create a random proposa
+void metropolis(int (& lattice)[N], array<int,2> posn) {
+    // Note the current value, and create a random proposal
     // Proposal have p=0.5 of taking on either of the other values
-    const int current = lattice[posn[0]][posn[1]];
-    const int proposal = (current + 2 + flip) % 3 - 1;
-
-    // Get the values of the 4 nearest neighbors
-    array<int, 4> vals = nearest_neighbor_vals(posn, lattice);
+    const int current = lattice[posn[0]*L + posn[1]];
+    const int proposal = (current + 2 + flip_buffer[flip_index++]) % 3 - 1;
 
     // Calculate the change in energy (from the blume-capel hamiltonian)
-    const int couple = accumulate(vals.begin(), vals.end(), 0);
+    int couple = 0;
+    for (int d = 0; d < 4; d++) {
+        const int n_id = modL[(posn[0] + dx[d])]*L + modL[(posn[1] + dy[d])];
+        couple += lattice[n_id];
+    }
     const int delta_e = - J * couple * (proposal - current) + D * (proposal*proposal - current*current);
 
     // Accept/reject proposal based on the change in energy
-    if (exp (-B * delta_e) > p) {
-        lattice[posn[0]][posn[1]] = proposal;
+    if (rng_buffer[rng_index++] < exp (-B * delta_e)) {
+        lattice[posn[0]*L + posn[1]] = proposal;
     }
 }
-void wolff(int (&lattice)[L][L]) {
+void wolff(int (&lattice)[N]) {
     // Bond formation probability
     static const double p = 1 - exp(-2 * B * J);
 
-    // Directions for nearest neighbor
-    constexpr int dx[4] = {1, L-1, 0, 0};
-    constexpr int dy[4] = {0, 0, 1, L-1};
-
-    array<int, L_MACRO * L_MACRO> st;
+    array<int, L * L> st;
     int st_index = 0, st_head = 0;
 
     // Pick a non-zero random site
     int value = 0, count = 0;
     int seed_x = 0, seed_y = 0;
 
+    // Generate a random site to seed the cluster
     while (value == 0 && count < L * L) {
         seed_x = posn_rand(engine);
         seed_y = posn_rand(engine);
-        value = lattice[seed_x][seed_y];
+        value = lattice[seed_x*L + seed_y];
         ++count;
     }
     if (value == 0) return;
-
+    const int flipped = -value;
     // Flip and seed
-    lattice[seed_x][seed_y] = -value;
-    st[st_head++] = (seed_x * L + seed_y);
+    lattice[seed_x*L + seed_y] = -value;
+    st[0] = (seed_x * L + seed_y);
 
-    size_t index = 0;
 
-    // Process cluster
-    while (st_index < st_head) {
-        int id = st[st_index++];
-        //const auto [x, y] = id_to_xy[id];
+    // Iterate through the stack
+    while (st_index <= st_head) {
+        const int id = st[st_index++];
         const int x = id / L;
         const int y = id % L;
-
-        for (int d = 0; d < 4; ++d) {
-            const int nx = modL[(x + dx[d])];
-            const int ny = modL[(y + dy[d])];
-
-            if (lattice[nx][ny] == value && p > rng_buffer[rng_index++]) {
-                lattice[nx][ny] = -value;
-                st[st_head++] = (nx * L + ny);
+        // Iterate through nearest neighbors
+        for (int d = 0; d < 4; d++) {
+            const int n_id = modL[(x + dx[d])]*L + modL[(y + dy[d])];
+            // Probablistically add sites to the cluster if they share the same value
+            //int &n_val = lattice[n_id];
+            const int n_val = lattice[n_id];
+            if (n_val == value && __builtin_expect(rng_buffer[rng_index++] < p, 1)) {
+                lattice[n_id] = flipped;
+                st[++st_head] = n_id;
             }
         }
     }
 }
 
-void step(int (&lattice)[L][L]) {
-    // Initialize arrays of random numbers to be fed to Metropolis
-    array<array<int, 2>, NUM_METRO_STEPS> posn_rands;
-    array<int, NUM_METRO_STEPS> flip_rands;
-    array<double, NUM_METRO_STEPS> p_rands;
-
-    // Generate random numbers in parallel
-    //#pragma omp parallel num_threads(NUM_THREADS)
-    {
-        // Create thread local distributions
-        thread_local uniform_real_distribution<double> lp_rand{0.0, 1.0};
-        thread_local uniform_int_distribution<int> lposn_rand{0, L-1};
-        thread_local uniform_int_distribution<int> lflip_rand{0, 1};
-
-        // Get the thread number
-        int tid = omp_get_thread_num();
-
-        // Split threads across for loop
-        //#pragma omp for schedule(static)
-        for (int i=0; i < NUM_METRO_STEPS; i++) {
-            // Use local distributions and thread-specific engines to generate random numbers
-            flip_rands[i] = lflip_rand(engines[tid]);
-            p_rands[i] = lp_rand(engines[tid]);
-        }
-    }
+void step(int (&lattice)[N]) {
     // Perform 3N single-site Metropolis steps and L single-cluster Wolff steps
     for (int i = 0; i < 3; i++) {
         for (int j = 0; j < L; j++) {
             for (int k = 0; k < L; k++) {
-                const int id = i*L*L + j*L + k;
-                metropolis(lattice, {j, k}, flip_rands[id], p_rands[id]);
+                metropolis(lattice, {j, k});
             }
         }
     }
-    refill_random();
+    // Perform L Wolff steps
     for (int i = 0; i < L; i++) {
         wolff(lattice);
     }
 }
 
-void generate_lattice(int (& lattice)[L][L]) {
+void generate_lattice(int (& lattice)[N]) {
     // Fills the lattice randomly
     for (int i = 0; i < L; i++) {
         for (int j = 0; j < L; j++) {
-            lattice[i][j] = fill_rand(engine);
+            lattice[i*L + j] = fill_rand(engine);
         }
     }
 }
 
-void generate_ising_lattice(int (& lattice)[L][L]) {
+void generate_ising_lattice(int (& lattice)[N]) {
     static uniform_int_distribution<int> ising_fill_rand{-1, 0};
     for (int i = 0; i < L; i++) {
         for (int j = 0; j < L; j++) {
@@ -245,7 +221,7 @@ void generate_ising_lattice(int (& lattice)[L][L]) {
             if (fill == 0) {
                 fill = 1;
             }
-            lattice[i][j] = fill;
+            lattice[i*L + j] = fill;
         }
     }
 }
@@ -354,31 +330,6 @@ void export_clusters(int (&lattice)[L][L], double p,  bool sign, string filename
     file.close();
 }
 
-int test_suite() {
-    int lattice[L][L];
-    generate_lattice(lattice);
-    for (int i = 0; i < L; i++) {
-        for (int j = 0; j < L; j++) {
-            cout << lattice[i][j] << " ";
-        }
-        cout<< endl;
-    }
-    cout << endl;
-    for (int i = 0; i < L; i++) {
-        for (int j = 0; j < L; j++) {
-            array<array<int,2>, 4> neighbors = nearest_neighbors({i, j});
-            array<int, 4> vals = nearest_neighbor_vals({i, j}, lattice);
-            cout << to_string(i) + ", " + to_string(j) + ":\n";
-            for (int k=0; k<4; k++) {
-                cout << vals[k] << " | " << neighbors[k][0] << ", " << neighbors[k][1] << endl;
-            }
-            cout << endl;
-
-        }
-    }
-    return 0;
-}
-
 int main(int argc, const char * argv[]) {
 
     for (int i = 0; i < 2*L; i++) {
@@ -411,15 +362,22 @@ int main(int argc, const char * argv[]) {
     }
 
     // Initialize and populate the lattice
-    int lattice[L][L];
-    generate_ising_lattice(lattice);
+    int lattice[N];
+    generate_lattice(lattice);
 
     auto start = chrono::high_resolution_clock::now();
-
+    refill_random();
     // Burn in of 1500N steps
-    for (int i = 0; i < 1500*L*L; i++) {
+    for (int i = 0; i < L; i++) {
+        //OPTION 2
+        #pragma omp parallel num_threads(NUM_THREADS)
+        {
+            refill_random();
+        }
         step(lattice);
+
     }
+    return 0;
 
     auto end = chrono::high_resolution_clock::now();
     double duration = chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
@@ -430,10 +388,17 @@ int main(int argc, const char * argv[]) {
         for (int j = 0; j < 9 * L*L; j++) {
             step(lattice);
         }
+        //unflatten
+        int lattice_2d[L][L];
+        for (int i = 0; i < L; i++) {
+            for (int j = 0; j < L; j++) {
+                lattice_2d[i][j] = lattice[i*L + j];
+            }
+        }
         // Export the data to text files
-        export_clusters(lattice, 1, true,
+        export_clusters(lattice_2d, 1, true,
             "./" + root + "/spin/" + to_string(L) + "/" + to_string(run) + "/" + to_string(i) + ".txt");
-        export_clusters(lattice, 1 - exp (-2 * B * J), true,
+        export_clusters(lattice_2d, 1 - exp (-2 * B * J), true,
             "./" + root + "/fk/" + to_string(L) + "/" + to_string(run) + "/" + to_string(i) + ".txt");
     }
     return 0;
