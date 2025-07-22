@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <omp.h>
 #include <stdlib.h>
+#include <sstream>
 
 #ifndef L_MACRO
 #define L_MACRO 8
@@ -169,7 +170,6 @@ void wolff(int (&lattice)[N]) {
     lattice[seed_x*L + seed_y] = -value;
     st[0] = (seed_x * L + seed_y);
 
-
     // Iterate through the stack
     while (st_index <= st_head) {
         const int id = st[st_index++];
@@ -232,7 +232,7 @@ public:
     vector<int> sites;
 };
 
-vector<Cluster> form_clusters(int (&lattice)[L][L], double p) {
+vector<Cluster> form_clusters(int (&lattice)[L][L], double bond_prob) {
     // Copy lattice
     int lattice2[L][L];
     for (int i = 0; i < L; i++) {
@@ -274,7 +274,7 @@ vector<Cluster> form_clusters(int (&lattice)[L][L], double p) {
                 for (array neighbor : neighbors) {
                     // Check if each neighbor has the value of the clusters
                     // Do a probability check
-                    if (lattice2[neighbor[0]][neighbor[1]] == value && p_rand(engine) < p) {
+                    if (lattice2[neighbor[0]][neighbor[1]] == value && p_rand(engine) < bond_prob) {
                         // If same value and probability check, add to cluster and stack
                         st.push(neighbor);
                         cluster.sites.push_back(get_posn_id(neighbor));
@@ -329,6 +329,46 @@ void export_clusters(int (&lattice)[L][L], double p,  bool sign, string filename
     file << lines << endl;
     file.close();
 }
+Cluster generate_cluster_from_string(const string& line) {
+    vector<string> result;
+    stringstream ss(line);
+    string segment;
+    bool sign = false;
+    while (getline(ss, segment, ' ')) {
+        result.push_back(segment);
+    }
+    if (!result.empty()) {
+        sign = result[0] == "+";
+        result.erase(result.begin());
+    }
+    vector<int> result_int;
+    transform(result.begin(), result.end(), back_inserter(result_int),
+                   [](const string& s) { return stoi(s); });
+
+    Cluster c;
+    c.sign = sign;
+    c.sites = result_int;
+    return c;
+}
+
+void get_lattice_from_burn(int (&lattice)[N], string burn) {
+    string sample_text;
+    ifstream sample_file(burn);
+    // Use a while loop together with the getline() function to read the file line by line
+    while (getline(sample_file, sample_text)) {
+        Cluster c = generate_cluster_from_string(sample_text);
+        if (c.sites.size() == 0) {
+            continue;
+        }
+        int prev = c.sites[0];
+        lattice[prev] = c.sign ? 1 : -1;
+        for (int i = 1; i < c.sites.size(); i++) {
+            int current = prev + c.sites[i];
+            prev = current;
+            lattice[current] = c.sign ? 1 : -1;
+        }
+    }
+}
 
 int main(int argc, const char * argv[]) {
 
@@ -352,40 +392,40 @@ int main(int argc, const char * argv[]) {
     // Get the run and directory of clusters from command-line arguments
     int run;
     string root;
+    string burn;
     if (argc > 1) {
         run = atoi(argv[1]);
         root = argv[2];
+        burn = atoi(argv[3]);
     }
     else {
         run = 0;
         root = "NONE";
+        burn = "NONE";
     }
 
     // Initialize and populate the lattice
     int lattice[N];
-    generate_lattice(lattice);
-
-    auto start = chrono::high_resolution_clock::now();
-    refill_random();
-    // Burn in of 1500N steps
+    get_lattice_from_burn(lattice, burn);
+    //unflatten
+    int lattice_2d[L][L];
     for (int i = 0; i < L; i++) {
-        //OPTION 2
-        #pragma omp parallel num_threads(NUM_THREADS)
-        {
-            refill_random();
+        for (int j = 0; j < L; j++) {
+            lattice_2d[i][j] = lattice[i*L + j];
         }
-        step(lattice);
-
     }
+    export_clusters(lattice_2d, 1, true,
+            "./" + root + "/test.txt");
     return 0;
-
-    auto end = chrono::high_resolution_clock::now();
-    double duration = chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-    cout << to_string(L) + "/" + to_string(run) << ": " << duration / 1000.0 << endl;
+    refill_random();
 
     // Data collection of 9*1500N steps
     for (int i = 0; i < 1500; i++) {
         for (int j = 0; j < 9 * L*L; j++) {
+            #pragma omp parallel num_threads(NUM_THREADS)
+            {
+                refill_random();
+            }
             step(lattice);
         }
         //unflatten
