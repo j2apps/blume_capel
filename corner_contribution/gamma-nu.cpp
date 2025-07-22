@@ -25,15 +25,15 @@ int count_size(const string& line) {
     string segment;
     int count = 0;
     while (getline(ss, segment, ' ')) {
-        count ++;
-    }
-    if (count > 1) {
-        return count - 1;
+		try {
+			const int gap = stoi(segment)
+			count ++;
+		}
     }
     return 0;
 }
 
-int get_sample_statistics(const string& filename) {
+int get_sample_statistics(const string& filename, int L) {
     ifstream sample_file(filename);
     if (sample_file.is_open()) {
         // File opened successfully, proceed with reading
@@ -57,17 +57,17 @@ int get_sample_statistics(const string& filename) {
     }
     const int max = *max_element(sizes.begin(), sizes.end());
     s -=  max*max;
-    return s;
+    return s/(L*L);
 }
 
-int run_single_run(const string& input_dirname) {
+int run_single_run(const string& input_dirname, int L) {
     // Initialize gap_size_statistics with size L/2, since there are L/2 possible gap sizes
     int s_total;
     int num_samples = 0;
     // Find all files in the directory, get the gap sizes from each, and update num_samples
     for (const auto & entry : fs::directory_iterator(input_dirname)) {
 	    string filepath = entry.path().string();
-        s_total += get_sample_statistics(filepath);
+        s_total += get_sample_statistics(filepath, L);
         num_samples ++;
     }
     return s_total/num_samples;
@@ -110,7 +110,7 @@ void run_statistics(const string& input_root, const string& output_root) {
         vector<int> statistics(100);
         #pragma omp parallel for num_threads(NUM_THREADS)
         for (int run = 0; run < 100; run++) {
-            statistics[run] = run_single_run(input_dirnames[run]);
+            statistics[run] = run_single_run(input_dirnames[run], l);
         }
         output += to_string(l) + ": " + to_string(mean(statistics)) + " +- " + to_string(stdev(statistics)) + "\n";
     }
