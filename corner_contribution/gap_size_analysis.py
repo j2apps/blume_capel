@@ -1,12 +1,13 @@
 import statistics
 import os
+import sys
 def get_corner_contribution(gap_size_statistics, num_samples, L, l):
     # Apply corner contribution formula
     acc = 0
     for i in range(0, l):
         for j in range(i, L//2):
             acc += gap_size_statistics[j]
-    return (1/2) * (1/(L*L)) * (1/num_samples) * acc
+    return (1/(L*L)) * (1/num_samples) * acc
 
 def get_gap_array(filename):
     # Get an array of numbers from the text file
@@ -20,7 +21,7 @@ def get_gap_array(filename):
 
 
 if __name__ == "__main__":
-    root = "./corner_contribution/data/ising7-17/fk"
+    root = sys.argv[1]
     # Iterate through each L value
     for l in (16, 32, 64):
         corner_contributions = list()
@@ -57,16 +58,18 @@ SPIN
 '''
 
 '''
-7/18
+7/20
 Spin
-16 0.5639980598958333 0.0016901015270230546
-32 0.6043296451822916 0.002448022285096406
-64 0.6457432003513394 0.02005631604510936
+16 1.1279961197916666 0.003380203054046109
+32 1.2086592903645832 0.004896044570192812
+64 1.290726540038491 0.008930008161243666
 
 FK
-16 0.5420662369791667 0.0009530617993024364
-32 0.5986309342447916 0.001699674359413443
-64 0.6585204060529553 0.021701361175327578
+16 1.0841324739583333 0.0019061235986048727
+32 1.1972618684895833 0.003399348718826886
+64 1.315605924956948 0.008110064361817281
+
+
 '''
 
 
