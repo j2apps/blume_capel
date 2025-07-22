@@ -297,11 +297,17 @@ bool sort_key(int a, int b) {
     return a < b;
 }
 
-void export_clusters(int (&lattice)[L][L], double p,  bool sign, string filename) {
+void export_clusters(int (&lattice)[N], double p,  bool sign, string filename) {
     // Exports clusters to a file
-
+    //unflatten
+    int lattice_2d[L][L];
+    for (int i = 0; i < L; i++) {
+        for (int j = 0; j < L; j++) {
+            lattice_2d[i][j] = lattice[i*L + j];
+        }
+    }
     // Get the clusters using form_clusters
-    vector<Cluster> clusters = form_clusters(lattice, p);
+    vector<Cluster> clusters = form_clusters(lattice_2d, p);
 
     // Initialize output
     string lines;
@@ -406,18 +412,22 @@ int main(int argc, const char * argv[]) {
 
     // Initialize and populate the lattice
     int lattice[N];
-    get_lattice_from_burn(lattice, burn);
-    //unflatten
-    int lattice_2d[L][L];
-    for (int i = 0; i < L; i++) {
-        for (int j = 0; j < L; j++) {
-            lattice_2d[i][j] = lattice[i*L + j];
-        }
-    }
-    export_clusters(lattice_2d, 1, true,
+    generate_lattice(lattice);
+
+    /*get_lattice_from_burn(lattice, burn);
+    export_clusters(lattice, 1, true,
             "./" + root + "/test.txt");
+    return 0;*/
+    for (int i = 0; i < L*L*1500; i++) {
+        #pragma omp parallel num_threads(NUM_THREADS)
+        {
+            refill_random();
+        }
+        step(lattice);
+    }
+    export_clusters(lattice, 1, true,
+            "./" + root + "/" + to_string(L) + "_burn.txt");
     return 0;
-    refill_random();
 
     // Data collection of 9*1500N steps
     for (int i = 0; i < 1500; i++) {
@@ -428,17 +438,10 @@ int main(int argc, const char * argv[]) {
             }
             step(lattice);
         }
-        //unflatten
-        int lattice_2d[L][L];
-        for (int i = 0; i < L; i++) {
-            for (int j = 0; j < L; j++) {
-                lattice_2d[i][j] = lattice[i*L + j];
-            }
-        }
         // Export the data to text files
-        export_clusters(lattice_2d, 1, true,
+        export_clusters(lattice, 1, true,
             "./" + root + "/spin/" + to_string(L) + "/" + to_string(run) + "/" + to_string(i) + ".txt");
-        export_clusters(lattice_2d, 1 - exp (-2 * B * J), true,
+        export_clusters(lattice, 1 - exp (-2 * B * J), true,
             "./" + root + "/fk/" + to_string(L) + "/" + to_string(run) + "/" + to_string(i) + ".txt");
     }
     return 0;
