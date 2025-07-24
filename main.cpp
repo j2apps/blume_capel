@@ -47,10 +47,7 @@ constexpr int N = L*L;
 constexpr int dx[4] = {1, L-1, 0, 0};
 constexpr int dy[4] = {0, 0, 1, L-1};
 
-//random_device rd{};
-unsigned rd() {
-    return 0;
-}
+random_device rd{};
 mt19937 engine{rd()};
 array<mt19937, NUM_THREADS> engines;
 
@@ -463,7 +460,7 @@ int main(int argc, const char * argv[]) {
     export_clusters(lattice, 1, true,
             "./" + root + "/test.txt");
     return 0;*/
-    for (int i = 0; i < 1500*N; i++) {
+    for (int i = 0; i < 4*L; i++) {
         #pragma omp parallel num_threads(NUM_THREADS)
         {
             refill_random();
