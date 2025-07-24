@@ -47,7 +47,10 @@ constexpr int N = L*L;
 constexpr int dx[4] = {1, L-1, 0, 0};
 constexpr int dy[4] = {0, 0, 1, L-1};
 
-random_device rd{};
+//random_device rd{};
+unsigned rd() {
+    return 0;
+}
 mt19937 engine{rd()};
 array<mt19937, NUM_THREADS> engines;
 
@@ -150,41 +153,83 @@ void wolff(int (&lattice)[N]) {
     // Bond formation probability
     static const double p = 1 - exp(-2 * B * J);
 
-    array<int, L * L> st;
-    int st_index = 0, st_head = 0;
+    array<int, N> vst;
+    array<int, N> hst;
+    int vst_index = 0, vst_head = 0;
+    int hst_index = 0, hst_head = 0;
 
     // Pick a non-zero random site
     int value = 0, count = 0;
     int seed_x = 0, seed_y = 0;
 
     // Generate a random site to seed the cluster
-    while (value == 0 && count < L * L) {
+    while (value == 0 && count < N) {
         seed_x = posn_rand(engine);
         seed_y = posn_rand(engine);
-        value = lattice[seed_x*L + seed_y];
+        value = lattice[seed_x + seed_y * L];
         ++count;
     }
     if (value == 0) return;
-    const int flipped = -value;
-    // Flip and seed
-    lattice[seed_x*L + seed_y] = -value;
-    st[0] = (seed_x * L + seed_y);
 
-    // Iterate through the stack
-    while (st_index <= st_head) {
-        const int id = st[st_index++];
-        const int x = id / L;
-        const int y = id % L;
-        // Iterate through nearest neighbors
-        for (int d = 0; d < 4; d++) {
-            const int n_id = modL[(x + dx[d])]*L + modL[(y + dy[d])];
-            // Probablistically add sites to the cluster if they share the same value
-            //int &n_val = lattice[n_id];
-            const int n_val = lattice[n_id];
-            if (n_val == value && __builtin_expect(rng_buffer[rng_index++] < p, 1)) {
-                lattice[n_id] = flipped;
-                st[++st_head] = n_id;
+    // Seed and flip the starting site
+    const int flipped = -value;
+    lattice[seed_x + seed_y * L] = flipped;
+
+    // Horizontal stack marks sites that still must search horizontally
+    hst[0] = seed_x + seed_y * L;
+    // Vertical stack marks sites that have already been searched horizontally
+    vst[0] = seed_x + seed_y * L;
+
+    // Algorithm searches horz first, then vert
+    // This limits re-checks horizontally and optimizes cache locality
+    while (vst_index <= vst_head) {
+        while (hst_index <= hst_head) {
+            const int anchor = hst[hst_index++];
+            const int x = anchor % L;
+            const int y = anchor / L;
+            // Attempt to bond to your right-neighbor until failure
+            for (int i = 1; i < L; i++) {
+                const int n_id = modL[x + i] + (y * L);
+                // Probablistically form bond with neighbor if they share the same spin
+                if (lattice[n_id] == value && rng_buffer[rng_index++] < p) {
+                    lattice[n_id] = flipped;
+                    vst[++vst_head] = n_id;
+                }
+                else {
+                    break;
+                }
             }
+            // Attempt to bond to your left-neighbor until failure
+            for (int i = 1; i < L; i++) {
+                const int n_id = modL[x - i] + (y * L);
+                // Probablistically form bond with neighbor if they share the same spin
+                if (lattice[n_id] == value && rng_buffer[rng_index++] < p) {
+                    lattice[n_id] = flipped;
+                    vst[++vst_head] = n_id;
+                }
+                else {
+                    break;
+                }
+            }
+        }
+        // After the horizontal stack is exhausted, move to vertical stack
+        const int id = vst[vst_index++];
+        const int x = id % L;
+        const int y = id / L;
+
+        // Check upstairs neighbor
+        int n_id = x + modL[(y + 1)] * L;
+        int n_val = lattice[n_id];
+        if (n_val == value && rng_buffer[rng_index++] < p) {
+            lattice[n_id] = flipped;
+            hst[++hst_head] = n_id;
+        }
+        // Check downstairs neighbor
+        n_id = x + modL[(y + L - 1)] * L;
+        n_val = lattice[n_id];
+        if (n_val == value && rng_buffer[rng_index++] < p) {
+            lattice[n_id] = flipped;
+            hst[++hst_head] = n_id;
         }
     }
 }
@@ -418,7 +463,7 @@ int main(int argc, const char * argv[]) {
     export_clusters(lattice, 1, true,
             "./" + root + "/test.txt");
     return 0;*/
-    for (int i = 0; i < L*L*1500; i++) {
+    for (int i = 0; i < 2*L; i++) {
         #pragma omp parallel num_threads(NUM_THREADS)
         {
             refill_random();
