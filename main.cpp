@@ -22,19 +22,20 @@
 
 using namespace std;
 
-/*
+
 // Ising critical
+
 const double B = 1 / 2.2691853;
 const double D = -1000;
 const double J = 1;
-*/
+
 
 // Tricritical
-
+/*
 const double B = 1 / 0.608;
 const double D = 1.966;
 const double J = 1;
-
+*/
 /*
 const double B = 1 / 0.574;
 const double D = 1;
@@ -454,13 +455,12 @@ int main(int argc, const char * argv[]) {
 
     // Initialize and populate the lattice
     int lattice[N];
-    generate_lattice(lattice);
+    //generate_lattice(lattice);
 
-    /*get_lattice_from_burn(lattice, burn);
-    export_clusters(lattice, 1, true,
-            "./" + root + "/test.txt");
-    return 0;*/
-    for (int i = 0; i < 4*L; i++) {
+    get_lattice_from_burn(lattice, burn);
+
+/*
+    for (int i = 0; i < 1500*N; i++) {
         #pragma omp parallel num_threads(NUM_THREADS)
         {
             refill_random();
@@ -470,7 +470,7 @@ int main(int argc, const char * argv[]) {
     export_clusters(lattice, 1, true,
             "./" + root + "/" + to_string(L) + "_burn.txt");
     return 0;
-
+*/
     // Data collection of 9*1500N steps
     for (int i = 0; i < 1500; i++) {
         for (int j = 0; j < 9 * L*L; j++) {

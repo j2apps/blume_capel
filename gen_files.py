@@ -7,7 +7,7 @@ if __name__ == "__main__":
 	Path(f'./{root}').mkdir(parents=True, exist_ok=True)
 	Path(f'./{root}/spin').mkdir(parents=True, exist_ok=True)
 	Path(f'./{root}/fk').mkdir(parents=True, exist_ok=True)
-	for l in (8, 16, 32, 64, 128):
+	for l in (8, 16, 32, 64, 96, 128):
 		Path(f'./{root}/spin/{l}').mkdir(parents=True, exist_ok=True)
 		Path(f'./{root}/fk/{l}').mkdir(parents=True, exist_ok=True)
 		for run in range(100):
