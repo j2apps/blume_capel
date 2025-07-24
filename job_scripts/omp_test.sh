@@ -6,8 +6,8 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=8
-#SBATCH -t 00:05:00
-#SBATCH --mem=20M
+#SBATCH -t 00:30:00
+#SBATCH --mem=5M
 #SBATCH --job-name="128omptest"
 #SBATCH --output=omp128log
 #SBATCH --mail-type=ALL

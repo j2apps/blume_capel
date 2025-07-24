@@ -24,13 +24,11 @@ int count_size(const string& line) {
     stringstream ss(line);
     string segment;
     int count = 0;
+	
     while (getline(ss, segment, ' ')) {
-		try {
-			const int gap = stoi(segment)
-			count ++;
-		}
+        count ++;
     }
-    return 0;
+    return count - 1;
 }
 
 int get_sample_statistics(const string& filename, int L) {
@@ -99,7 +97,7 @@ double mean(const std::vector<int>& data) {
 
 void run_statistics(const string& input_root, const string& output_root) {
     string output;
-    for (int l: {16, 32, 64}) {
+    for (int l: {8, 16, 32, 64}) {
         // Write string ahead of time to avoid race conditions
 	    array<string, 100> input_dirnames;
 	    for (int run=0; run<100; run++) {

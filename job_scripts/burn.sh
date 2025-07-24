@@ -1,20 +1,23 @@
 #!/bin/bash
 #SBATCH --account=p32813
-#SBATCH --array=0-99
+#SBATCH --array=0-3
+#SBATCH --error=error.err
 #SBATCH --partition=normal
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=4
-#SBATCH -t 168:00:00
+#SBATCH -t 48:00:00
 #SBATCH --mem=10M
-#SBATCH --job-name="32-16-ising"
-#SBATCH --output=32-16-ising-outlog
+#SBATCH --job-name="64bcb"
+#SBATCH --output=output
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=jonahkim2028@u.northwestern.edu
 
 module purge all
-module load gcc/12.3.0-gcc
+
+declare -a l=(8 16 32 64)
+./compiled/bc_burn_${l[$SLURM_ARRAY_TASK_ID]} 0 ./data/burn-7-22/bc
 
 
-./compiled/ising_4_64 $SLURM_ARRAY_TASK_ID ./data/ising-7-17
+
 
