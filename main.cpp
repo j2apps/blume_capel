@@ -151,10 +151,9 @@ void wolff(int (&lattice)[N]) {
     // Bond formation probability
     static const double p = 1 - exp(-2 * B * J);
 
-    array<int, N> vst;
-    array<int, N> hst;
-    int vst_index = 0, vst_head = 0;
-    int hst_index = 0, hst_head = 0;
+    array<int, N> st;
+    int st_index = 0;
+    int st_head = 0;
 
     // Pick a non-zero random site
     int value = 0, count = 0;
@@ -173,63 +172,21 @@ void wolff(int (&lattice)[N]) {
     const int flipped = -value;
     lattice[seed_x + seed_y * L] = flipped;
 
-    // Horizontal stack marks sites that still must search horizontally
-    hst[0] = seed_x + seed_y * L;
-    // Vertical stack marks sites that have already been searched horizontally
-    vst[0] = seed_x + seed_y * L;
+    st[0] = seed_x + seed_y * L;
 
-    // Algorithm searches horz first, then vert
-    // This limits re-checks horizontally and optimizes cache locality
-    while (vst_index <= vst_head) {
-        while (hst_index <= hst_head) {
-            const int anchor = hst[hst_index++];
-            const int x = anchor % L;
-            const int y = anchor / L;
-            // Attempt to bond to your right-neighbor until failure
-            for (int i = 1; i < L; i++) {
-                const int n_id = modL[x + i] + (y * L);
-                // Probablistically form bond with neighbor if they share the same spin
-                if (lattice[n_id] == value && rng_buffer[rng_index++] < p) {
-                    lattice[n_id] = flipped;
-                    vst[++vst_head] = n_id;
-                }
-                else {
-                    break;
-                }
+    while (st_index <= st_head) {
+        int site = st[st_index++];
+        for (int d = 0; d < 4; d++) {
+            const int x = modL[modL[site] + dx[d]];
+            const int y = modL[site / L + dy[d]];
+            const int neighbor = x + y * L;
+            if (lattice[neighbor] == value && rng_buffer[rng_index] < p) {
+                lattice[neighbor] = flipped;
+                st[++st_head] = neighbor;
             }
-            // Attempt to bond to your left-neighbor until failure
-            for (int i = 1; i < L; i++) {
-                const int n_id = modL[x - i] + (y * L);
-                // Probablistically form bond with neighbor if they share the same spin
-                if (lattice[n_id] == value && rng_buffer[rng_index++] < p) {
-                    lattice[n_id] = flipped;
-                    vst[++vst_head] = n_id;
-                }
-                else {
-                    break;
-                }
-            }
-        }
-        // After the horizontal stack is exhausted, move to vertical stack
-        const int id = vst[vst_index++];
-        const int x = id % L;
-        const int y = id / L;
-
-        // Check upstairs neighbor
-        int n_id = x + modL[(y + 1)] * L;
-        int n_val = lattice[n_id];
-        if (n_val == value && rng_buffer[rng_index++] < p) {
-            lattice[n_id] = flipped;
-            hst[++hst_head] = n_id;
-        }
-        // Check downstairs neighbor
-        n_id = x + modL[(y + L - 1)] * L;
-        n_val = lattice[n_id];
-        if (n_val == value && rng_buffer[rng_index++] < p) {
-            lattice[n_id] = flipped;
-            hst[++hst_head] = n_id;
         }
     }
+
 }
 
 void step(int (&lattice)[N]) {
@@ -455,11 +412,20 @@ int main(int argc, const char * argv[]) {
 
     // Initialize and populate the lattice
     int lattice[N];
+<<<<<<< HEAD
     //generate_lattice(lattice);
 
     get_lattice_from_burn(lattice, burn);
 
 /*
+=======
+    generate_ising_lattice(lattice);
+
+    /*get_lattice_from_burn(lattice, burn);
+    export_clusters(lattice, 1, true,
+            "./" + root + "/test.txt");
+    return 0;*/
+>>>>>>> b7ba3c4cdd029a4718877589b8e0a7ddbee8ab9d
     for (int i = 0; i < 1500*N; i++) {
         #pragma omp parallel num_threads(NUM_THREADS)
         {
