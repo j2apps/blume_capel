@@ -417,7 +417,7 @@ int main(int argc, const char * argv[]) {
     export_clusters(lattice, 1, true,
             "./" + root + "/test.txt");
     return 0;*/
-    for (int i = 0; i < 2*L; i++) {
+    for (int i = 0; i < 1500*N; i++) {
         #pragma omp parallel num_threads(NUM_THREADS)
         {
             refill_random();
