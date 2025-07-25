@@ -53,7 +53,7 @@ mt19937 engine{rd()};
 array<mt19937, NUM_THREADS> engines;
 
 static uniform_real_distribution<double> p_rand{0.0, 1.0};
-static uniform_int_distribution<int> posn_rand{0, L-1};
+static uniform_int_distribution<int> posn_rand{0, N-1};
 static uniform_int_distribution<int> fill_rand{-1, 1};
 static uniform_int_distribution<int> flip_rand{0, 1};
 
@@ -157,22 +157,21 @@ void wolff(int (&lattice)[N]) {
 
     // Pick a non-zero random site
     int value = 0, count = 0;
-    int seed_x = 0, seed_y = 0;
+    int seed = 0;
 
     // Generate a random site to seed the cluster
     while (value == 0 && count < N) {
-        seed_x = posn_rand(engine);
-        seed_y = posn_rand(engine);
-        value = lattice[seed_x + seed_y * L];
+        seed = posn_rand(engine);
+        value = lattice[seed];
         ++count;
     }
     if (value == 0) return;
 
     // Seed and flip the starting site
     const int flipped = -value;
-    lattice[seed_x + seed_y * L] = flipped;
 
-    st[0] = seed_x + seed_y * L;
+    lattice[seed] = flipped;
+    st[0] = seed;
 
     while (st_index <= st_head) {
         int site = st[st_index++];
@@ -180,7 +179,7 @@ void wolff(int (&lattice)[N]) {
             const int x = modL[modL[site] + dx[d]];
             const int y = modL[site / L + dy[d]];
             const int neighbor = x + y * L;
-            if (lattice[neighbor] == value && rng_buffer[rng_index] < p) {
+            if (lattice[neighbor] == value && rng_buffer[rng_index++] < p) {
                 lattice[neighbor] = flipped;
                 st[++st_head] = neighbor;
             }
@@ -398,10 +397,11 @@ int main(int argc, const char * argv[]) {
     // Get the run and directory of clusters from command-line arguments
     int run;
     string root;
-    string burn;
+    int burn;
     if (argc > 1) {
         run = atoi(argv[1]);
         root = argv[2];
+        burn = atoi(argv[3]);
     }
     else {
         run = 0;
@@ -412,21 +412,22 @@ int main(int argc, const char * argv[]) {
     int lattice[N];
     //generate_lattice(lattice);
 
-
-    //generate_ising_lattice(lattice);
+    if (burn == 1) {
+        generate_ising_lattice(lattice);
+        for (int i = 0; i < 1500*N; i++) {
+        #pragma omp parallel num_threads(NUM_THREADS)
+            {
+                refill_random();
+            }
+            step(lattice);
+        }
+        export_clusters(lattice, 1, true,
+                "./" + root + "/" + to_string(L) + "_burn.txt");
+        return 0;
+    }
 
     get_lattice_from_burn(lattice, root + "/burn/" + to_string(L) + "_burn.txt");
 
-    /*for (int i = 0; i < 1500*N; i++) {
-        #pragma omp parallel num_threads(NUM_THREADS)
-        {
-            refill_random();
-        }
-        step(lattice);
-    }
-    export_clusters(lattice, 1, true,
-            "./" + root + "/" + to_string(L) + "_burn.txt");
-    return 0;*/
     // Data collection of 9*1500N steps
     for (int i = 0; i < 1500; i++) {
         for (int j = 0; j < 9 * L*L; j++) {
