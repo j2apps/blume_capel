@@ -65,7 +65,7 @@ int rng_index = RNG_BATCH_SIZE;
 int flip_index = NUM_METRO_STEPS;
 
 // Lookup Tables
-int modL[2*L];
+int modL[N];
 array<pair<int, int>, L*L> id_to_xy;
 
 struct spin {
@@ -176,7 +176,7 @@ void wolff(int (&lattice)[N]) {
     while (st_index <= st_head) {
         int site = st[st_index++];
         for (int d = 0; d < 4; d++) {
-            const int x = modL[modL[site] + dx[d]];
+            const int x = modL[modL[site]  + dx[d]];
             const int y = modL[site / L + dy[d]];
             const int neighbor = x + y * L;
             if (lattice[neighbor] == value && rng_buffer[rng_index++] < p) {
@@ -377,7 +377,7 @@ void get_lattice_from_burn(int (&lattice)[N], string burn) {
 
 int main(int argc, const char * argv[]) {
 
-    for (int i = 0; i < 2*L; i++) {
+    for (int i = 0; i < N; i++) {
         modL[i] = i % L;
     }
 
@@ -406,6 +406,7 @@ int main(int argc, const char * argv[]) {
     else {
         run = 0;
         root = "NONE";
+        burn = 1;
     }
 
     // Initialize and populate the lattice
@@ -414,7 +415,7 @@ int main(int argc, const char * argv[]) {
 
     if (burn == 1) {
         generate_ising_lattice(lattice);
-        for (int i = 0; i < 1500*N; i++) {
+        for (int i = 0; i < 2*L; i++) {
         #pragma omp parallel num_threads(NUM_THREADS)
             {
                 refill_random();
