@@ -402,31 +402,22 @@ int main(int argc, const char * argv[]) {
     if (argc > 1) {
         run = atoi(argv[1]);
         root = argv[2];
-        burn = atoi(argv[3]);
     }
     else {
         run = 0;
         root = "NONE";
-        burn = "NONE";
     }
 
     // Initialize and populate the lattice
     int lattice[N];
-<<<<<<< HEAD
     //generate_lattice(lattice);
 
-    get_lattice_from_burn(lattice, burn);
 
-/*
-=======
-    generate_ising_lattice(lattice);
+    //generate_ising_lattice(lattice);
 
-    /*get_lattice_from_burn(lattice, burn);
-    export_clusters(lattice, 1, true,
-            "./" + root + "/test.txt");
-    return 0;*/
->>>>>>> b7ba3c4cdd029a4718877589b8e0a7ddbee8ab9d
-    for (int i = 0; i < 1500*N; i++) {
+    get_lattice_from_burn(lattice, root + "/burn/" + to_string(L) + "_burn.txt");
+
+    /*for (int i = 0; i < 1500*N; i++) {
         #pragma omp parallel num_threads(NUM_THREADS)
         {
             refill_random();
@@ -435,8 +426,7 @@ int main(int argc, const char * argv[]) {
     }
     export_clusters(lattice, 1, true,
             "./" + root + "/" + to_string(L) + "_burn.txt");
-    return 0;
-*/
+    return 0;*/
     // Data collection of 9*1500N steps
     for (int i = 0; i < 1500; i++) {
         for (int j = 0; j < 9 * L*L; j++) {
