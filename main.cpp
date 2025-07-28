@@ -31,11 +31,15 @@ const double J = 1;
 */
 
 // Tricritical
-
+/*
 const double B = 1 / 0.608;
 const double D = 1.966;
 const double J = 1;
-
+*/
+// Tricritical #2
+const double B = 1 / 0.;
+const double D = 1.966;
+const double J = 1;
 /*
 const double B = 1 / 0.574;
 const double D = 1;
@@ -66,11 +70,6 @@ int flip_index = NUM_METRO_STEPS;
 
 // Lookup Tables
 int modL[N];
-array<pair<int, int>, L*L> id_to_xy;
-
-struct spin {
-    unsigned int value : 2; // 'value' will occupy 2 bits
-};
 
 void refill_random() {
     //OPTION 1
@@ -189,7 +188,6 @@ void wolff(int (&lattice)[N]) {
             }
         }
     }
-
 }
 
 void step(int (&lattice)[N]) {
@@ -233,61 +231,60 @@ public:
     vector<int> sites;
 };
 
-vector<Cluster> form_clusters(int (&lattice)[L][L], double bond_prob) {
+vector<Cluster> form_clusters(int (&lattice)[N], double bond_prob) {
     // Copy lattice
-    int lattice2[L][L];
-    for (int i = 0; i < L; i++) {
-        for (int j = 0; j < L; j++) {
-            lattice2[i][j] = lattice[i][j];
-        }
+    array<int, N> lattice2;
+    for (int i = 0; i < N; i++) {
+        lattice2[i] = lattice[i];
     }
 
     // List of clusters
     vector<Cluster> clusters;
 
     // Loop through every site in the lattice
-    for (int i = 0; i < L; i++) {
-        for (int j = 0; j < L; j++) {
+    for (int i = 0; i < N; i++) {
+        // Ignore sites if they are empty or are in a cluster already
+        const int value = lattice2[i];
+        if (value == 0) {continue;}
 
-            // Ignore sites if they are empty or are in a cluster already
-            const int value = lattice2[i][j];
-            if (value == 0) {continue;}
+        // Stack of sites and cluster
+        stack<int> st;
+        st.push(i);
 
-            // Stack of sites and cluster
-            stack<array<int, 2>> st;
-            st.push({i, j});
+        Cluster cluster;
+        cluster.sign = value == 1;
+        cluster.sites.push_back(i);
 
-            Cluster cluster;
-            cluster.sign = value == 1;
-            cluster.sites.push_back(get_posn_id({i, j}));
+        // Set sites that are added to a cluster to 0 so they are not added again
+        lattice2[i] = 0;
+        int site;
 
-            // Set sites that are added to a cluster to 0 so they are not added again
-            lattice2[i][j] = 0;
-            array<int, 2> site;
+        // Go through stack and look at all nearest neighbors
+        while (!st.empty()) {
+            site = st.top();
+            st.pop();
 
-            // Go through stack and look at all nearest neighbors
-            while (!st.empty()) {
-                site = st.top();
-                st.pop();
+            // Find nearest neighbor
+            const int x = modL[site];
+            const int y = site/L;
+            for (int d = 0; d < 4; d++) {
+                const int nx = modL[x  + dx[d]];
+                const int ny = modL[y + dy[d]];
+                const int nsite = nx + ny * L;
+                // Check if each neighbor has the value of the clusters
+                // Do a probability check
+                if (lattice2[nsite] == value && p_rand(engine) < bond_prob) {
+                    // If same value and probability check, add to cluster and stack
+                    st.push(nsite);
+                    cluster.sites.push_back(nsite);
 
-                // Find nearest neighbors
-                array<array<int,2>,4> neighbors = nearest_neighbors(site);
-                for (array neighbor : neighbors) {
-                    // Check if each neighbor has the value of the clusters
-                    // Do a probability check
-                    if (lattice2[neighbor[0]][neighbor[1]] == value && p_rand(engine) < bond_prob) {
-                        // If same value and probability check, add to cluster and stack
-                        st.push(neighbor);
-                        cluster.sites.push_back(get_posn_id(neighbor));
-
-                        // Set sites that are added to a cluster to 0 so they are not added again
-                        lattice2[neighbor[0]][neighbor[1]] = 0;
-                    }
+                    // Set sites that are added to a cluster to 0 so they are not added again
+                    lattice2[nsite] = 0;
                 }
             }
-            if (cluster.sites.size() > 0) {
-                clusters.push_back(cluster);
-            }
+        }
+        if (cluster.sites.size() > 0) {
+            clusters.push_back(cluster);
         }
     }
     return clusters;
@@ -300,15 +297,9 @@ bool sort_key(int a, int b) {
 
 void export_clusters(int (&lattice)[N], double p,  bool sign, string filename) {
     // Exports clusters to a file
-    //unflatten
-    int lattice_2d[L][L];
-    for (int i = 0; i < L; i++) {
-        for (int j = 0; j < L; j++) {
-            lattice_2d[i][j] = lattice[i*L + j];
-        }
-    }
+
     // Get the clusters using form_clusters
-    vector<Cluster> clusters = form_clusters(lattice_2d, p);
+    vector<Cluster> clusters = form_clusters(lattice, p);
 
     // Initialize output
     string lines;
@@ -383,12 +374,6 @@ int main(int argc, const char * argv[]) {
         modL[i] = i % L;
     }
 
-    for (int x = 0; x < L; ++x) {
-        for (int y = 0; y < L; ++y) {
-            id_to_xy[x * L + y] = {x, y};
-        }
-    }
-
     // test_suite();
     // return 0;
     // Seed the thread-specific rngs
@@ -413,8 +398,12 @@ int main(int argc, const char * argv[]) {
 
     // Initialize and populate the lattice
     int lattice[N];
-    //generate_lattice(lattice);
-
+    //TEST
+    get_lattice_from_burn(lattice, "testin");
+    export_clusters(lattice, 1 - exp (-2 * B * J), true,
+                "testout");
+    return 0;
+    //ENDTEST
     if (burn == 1) {
 		cout << "burning " + to_string(L) << endl;
         //generate_ising_lattice(lattice);
