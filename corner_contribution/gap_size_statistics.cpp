@@ -170,7 +170,7 @@ void run_single_run(const string& input_dirname, const string& output_filename, 
 
 void run_statistics(const string& input_root, const string& output_root) {
     constexpr int nruns = 25;
-    for (int l: {16, 32}) {
+    for (int l: {16}) {
         // Write string ahead of time to avoid race conditions
 	    array<string, nruns> input_dirnames;
 	    array<string, nruns> output_filenames;

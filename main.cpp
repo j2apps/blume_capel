@@ -24,18 +24,18 @@ using namespace std;
 
 
 // Ising critical
-
+/*
 const double B = 1 / 2.2691853;
 const double D = -1000;
 const double J = 1;
-
+*/
 
 // Tricritical
-/*
+
 const double B = 1 / 0.608;
 const double D = 1.966;
 const double J = 1;
-*/
+
 /*
 const double B = 1 / 0.574;
 const double D = 1;
@@ -414,8 +414,11 @@ int main(int argc, const char * argv[]) {
     //generate_lattice(lattice);
 
     if (burn == 1) {
-        generate_ising_lattice(lattice);
-        for (int i = 0; i < 2*L; i++) {
+		cout << "burning " + to_string(L) << endl;
+        //generate_ising_lattice(lattice);
+		generate_lattice(lattice);
+
+        for (int i = 0; i < 1500*N; i++) {
         #pragma omp parallel num_threads(NUM_THREADS)
             {
                 refill_random();
@@ -423,11 +426,12 @@ int main(int argc, const char * argv[]) {
             step(lattice);
         }
         export_clusters(lattice, 1, true,
-                "./" + root + "/" + to_string(L) + "_burn.txt");
+                "./" + root + "/burn/" + to_string(L) + "_burn.txt");
+	cout << "burnt " + to_string(L) << endl;
         return 0;
     }
 
-    get_lattice_from_burn(lattice, root + "/burn/" + to_string(L) + "_burn.txt");
+    get_lattice_from_burn(lattice, "./" + root + "/burn/" + to_string(L) + "_burn.txt");
 
     // Data collection of 9*1500N steps
     for (int i = 0; i < 1500; i++) {
