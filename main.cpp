@@ -128,23 +128,25 @@ array<int, 4> nearest_neighbor_vals(array<int,2> posn, int (& lattice)[L][L]) {
 }
 
 
-void metropolis(int (& lattice)[N], array<int,2> posn) {
+void metropolis(int (& lattice)[N], int posn) {
     // Note the current value, and create a random proposal
     // Proposal have p=0.5 of taking on either of the other values
-    const int current = lattice[posn[0]*L + posn[1]];
+    const int current = lattice[posn];
     const int proposal = (current + 2 + flip_buffer[flip_index++]) % 3 - 1;
 
     // Calculate the change in energy (from the blume-capel hamiltonian)
     int couple = 0;
+    const int x = modL[posn];
+    const int y = posn/L;
     for (int d = 0; d < 4; d++) {
-        const int n_id = modL[(posn[0] + dx[d])]*L + modL[(posn[1] + dy[d])];
+        const int n_id = modL[(x + dx[d])]*L + modL[(y + dy[d])];
         couple += lattice[n_id];
     }
     const int delta_e = - J * couple * (proposal - current) + D * (proposal*proposal - current*current);
 
     // Accept/reject proposal based on the change in energy
     if (rng_buffer[rng_index++] < exp (-B * delta_e)) {
-        lattice[posn[0]*L + posn[1]] = proposal;
+        lattice[posn] = proposal;
     }
 }
 void wolff(int (&lattice)[N]) {
@@ -175,10 +177,12 @@ void wolff(int (&lattice)[N]) {
 
     while (st_index <= st_head) {
         int site = st[st_index++];
+        const int x = modL[site];
+        const int y = site/L;
         for (int d = 0; d < 4; d++) {
-            const int x = modL[modL[site]  + dx[d]];
-            const int y = modL[site / L + dy[d]];
-            const int neighbor = x + y * L;
+            const int nx = modL[x  + dx[d]];
+            const int ny = modL[y + dy[d]];
+            const int neighbor = nx + ny * L;
             if (lattice[neighbor] == value && rng_buffer[rng_index++] < p) {
                 lattice[neighbor] = flipped;
                 st[++st_head] = neighbor;
@@ -191,10 +195,8 @@ void wolff(int (&lattice)[N]) {
 void step(int (&lattice)[N]) {
     // Perform 3N single-site Metropolis steps and L single-cluster Wolff steps
     for (int i = 0; i < 3; i++) {
-        for (int j = 0; j < L; j++) {
-            for (int k = 0; k < L; k++) {
-                metropolis(lattice, {j, k});
-            }
+        for (int k = 0; k < N; k++) {
+            metropolis(lattice, k);
         }
     }
     // Perform L Wolff steps
@@ -418,7 +420,7 @@ int main(int argc, const char * argv[]) {
         //generate_ising_lattice(lattice);
 		generate_lattice(lattice);
 
-        for (int i = 0; i < 1500*N; i++) {
+        for (int i = 0; i < 250; i++) {
         #pragma omp parallel num_threads(NUM_THREADS)
             {
                 refill_random();
@@ -435,7 +437,7 @@ int main(int argc, const char * argv[]) {
 
     // Data collection of 9*1500N steps
     for (int i = 0; i < 1500; i++) {
-        for (int j = 0; j < 9 * L*L; j++) {
+        for (int j = 0; j < 9 * N; j++) {
             #pragma omp parallel num_threads(NUM_THREADS)
             {
                 refill_random();
