@@ -23,7 +23,7 @@ def get_gap_array(filename):
 if __name__ == "__main__":
     root = sys.argv[1]
     # Iterate through each L value
-    for l in (8, 16, 32, 64):
+    for l in (16,):
         corner_contributions = list()
         # Find all files in the directory
         with os.scandir(f"{root}/{l}") as entries:

@@ -169,17 +169,18 @@ void run_single_run(const string& input_dirname, const string& output_filename, 
 }
 
 void run_statistics(const string& input_root, const string& output_root) {
-    for (int l: {8, 16, 32, 64}) {
+    constexpr int nruns = 25;
+    for (int l: {16}) {
         // Write string ahead of time to avoid race conditions
-	    array<string, 100> input_dirnames;
-	    array<string, 100> output_filenames;
-	    for (int run=0; run<100; run++) {
+	    array<string, nruns> input_dirnames;
+	    array<string, nruns> output_filenames;
+	    for (int run=0; run<nruns; run++) {
 		    input_dirnames[run] = input_root + "/" + to_string(l) + "/" + to_string(run);
 		    output_filenames[run] = output_root + "/" + to_string(l) + "/" + to_string(run) + ".txt";
 	    }
         // Split runs up between threads
         #pragma omp parallel for num_threads(NUM_THREADS)
-        for (int run = 0; run < 100; run++) {
+        for (int run = 0; run < nruns; run++) {
             run_single_run(input_dirnames[run], output_filenames[run], l);
         }
 	
