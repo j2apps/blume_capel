@@ -36,16 +36,6 @@ const double B = 1 / 0.608;
 const double D = 1.966;
 const double J = 1;
 */
-// Tricritical #2
-const double B = 1 / 0.;
-const double D = 1.966;
-const double J = 1;
-/*
-const double B = 1 / 0.574;
-const double D = 1;
-const double J = 1;
-*/
-
 
 constexpr int L = static_cast<int>(L_MACRO);
 constexpr int N = L*L;
@@ -72,8 +62,6 @@ int flip_index = NUM_METRO_STEPS;
 int modL[N];
 
 void refill_random() {
-    //OPTION 1
-    //#pragma omp parallel num_threads(NUM_THREADS)
     {
         // Create thread local distributions
         thread_local uniform_real_distribution<double> lp_rand{0.0, 1.0};
@@ -373,9 +361,6 @@ int main(int argc, const char * argv[]) {
     for (int i = 0; i < N; i++) {
         modL[i] = i % L;
     }
-
-    // test_suite();
-    // return 0;
     // Seed the thread-specific rngs
 	for (int i = 0; i < NUM_THREADS; i++) {
 		engines[i].seed(random_device{}());
@@ -398,12 +383,6 @@ int main(int argc, const char * argv[]) {
 
     // Initialize and populate the lattice
     int lattice[N];
-    //TEST
-    get_lattice_from_burn(lattice, "testin");
-    export_clusters(lattice, 1 - exp (-2 * B * J), true,
-                "testout");
-    return 0;
-    //ENDTEST
     if (burn == 1) {
 		cout << "burning " + to_string(L) << endl;
         //generate_ising_lattice(lattice);
