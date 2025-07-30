@@ -31,11 +31,9 @@ const double J = 1;
 */
 
 // Tricritical
-/*
-const double B = 1 / 0.608;
-const double D = 1.966;
-const double J = 1;
-*/
+constexpr double B = 1/0.608;
+constexpr double D = 1.966;
+constexpr double J = 1.0;
 
 constexpr int L = static_cast<int>(L_MACRO);
 constexpr int N = L*L;
@@ -48,13 +46,12 @@ array<mt19937, NUM_THREADS> engines;
 
 static uniform_real_distribution<double> p_rand{0.0, 1.0};
 static uniform_int_distribution<int> posn_rand{0, N-1};
-static uniform_int_distribution<int> fill_rand{-1, 1};
-static uniform_int_distribution<int> flip_rand{0, 1};
 
 constexpr int RNG_BATCH_SIZE = 2*L*L*L + 3*L;
 constexpr int NUM_METRO_STEPS = 3*N;
 array<double, RNG_BATCH_SIZE> rng_buffer;
 array<int, NUM_METRO_STEPS> flip_buffer;
+array<int, NUM_METRO_STEPS> posn_buffer;
 int rng_index = RNG_BATCH_SIZE;
 int flip_index = NUM_METRO_STEPS;
 
@@ -66,6 +63,7 @@ void refill_random() {
         // Create thread local distributions
         thread_local uniform_real_distribution<double> lp_rand{0.0, 1.0};
         thread_local uniform_int_distribution<int> lflip_rand{0, 1};
+        thread_local uniform_int_distribution<int> lposn_rand{0, N-1};
 
         // Split threads across for loop
         int tid = omp_get_thread_num();
@@ -77,6 +75,7 @@ void refill_random() {
         #pragma omp for schedule(static)
         for (int i = 0; i < flip_index; ++i) {
             flip_buffer[i] = lflip_rand(engines[tid]);
+            posn_buffer[i] = lposn_rand(engines[tid]);
         }
     }
     rng_index = 0;
@@ -92,47 +91,25 @@ array<int, 2> get_posn_from_id(int id) {
     return {id / L, id % L};
 }
 
-
-array<array<int, 2>, 4> nearest_neighbors(array<int,2> posn) {
-    // Finds the indices of the 4 nearest neighbors
-    const array<array<int, 2>, 4> neighbors = {{
-        {(posn[0] + 1) % L, posn[1]},
-        {(posn[0] - 1 + L) % L, posn[1]},
-        {posn[0], (posn[1] + 1) % L},
-        {posn[0], (posn[1] - 1 + L) % L}}
-};
-    return neighbors;
-}
-
-array<int, 4> nearest_neighbor_vals(array<int,2> posn, int (& lattice)[L][L]) {
-    //Gets the values of the 4 nearest neighbors
-    array<array<int, 2>, 4> neighbors = nearest_neighbors(posn);
-    array<int, 4> vals;
-    for (int i = 0; i < 4; i++) {
-        vals[i] = lattice[neighbors[i][0]][neighbors[i][1]];
-    }
-    return vals;
-}
-
-
-void metropolis(int (& lattice)[N], int posn) {
+void metropolis(int (& lattice)[N]) {
     // Note the current value, and create a random proposal
     // Proposal have p=0.5 of taking on either of the other values
+    const int posn = posn_buffer[flip_index];
     const int current = lattice[posn];
     const int proposal = (current + 2 + flip_buffer[flip_index++]) % 3 - 1;
 
     // Calculate the change in energy (from the blume-capel hamiltonian)
-    int couple = 0;
+    int neighbors = 0;
     const int x = modL[posn];
     const int y = posn/L;
     for (int d = 0; d < 4; d++) {
-        const int n_id = modL[(x + dx[d])]*L + modL[(y + dy[d])];
-        couple += lattice[n_id];
+        const int neighbor = modL[(x + dx[d])] + modL[(y + dy[d])]*L;
+        neighbors += lattice[neighbor];
     }
-    const int delta_e = - J * couple * (proposal - current) + D * (proposal*proposal - current*current);
-
+    const double de = - J * (proposal-current) * neighbors
+                   + D * (proposal*proposal - current*current);
     // Accept/reject proposal based on the change in energy
-    if (rng_buffer[rng_index++] < exp (-B * delta_e)) {
+    if (de <= 0 || rng_buffer[rng_index++] < exp (-B * de)) {
         lattice[posn] = proposal;
     }
 }
@@ -140,7 +117,7 @@ void wolff(int (&lattice)[N]) {
     // Bond formation probability
     static const double p = 1 - exp(-2 * B * J);
 
-    array<int, N> st;
+    array<int, N> st{};
     int st_index = 0;
     int st_head = 0;
 
@@ -180,23 +157,19 @@ void wolff(int (&lattice)[N]) {
 
 void step(int (&lattice)[N]) {
     // Perform 3N single-site Metropolis steps and L single-cluster Wolff steps
-    for (int i = 0; i < 3; i++) {
-        for (int k = 0; k < N; k++) {
-            metropolis(lattice, k);
-        }
-    }
-    // Perform L Wolff steps
     for (int i = 0; i < L; i++) {
+        for (int j = 0; j < 3*L; j++) {
+            metropolis(lattice);
+        }
         wolff(lattice);
     }
 }
 
 void generate_lattice(int (& lattice)[N]) {
+    static uniform_int_distribution<int> fill_rand{-1, 1};
     // Fills the lattice randomly
-    for (int i = 0; i < L; i++) {
-        for (int j = 0; j < L; j++) {
-            lattice[i*L + j] = fill_rand(engine);
-        }
+    for (int i = 0; i < N; i++) {
+        lattice[i] = fill_rand(engine);
     }
 }
 
@@ -255,10 +228,11 @@ vector<Cluster> form_clusters(int (&lattice)[N], double bond_prob) {
             // Find nearest neighbor
             const int x = modL[site];
             const int y = site/L;
+            int nx, ny, nsite;
             for (int d = 0; d < 4; d++) {
-                const int nx = modL[x  + dx[d]];
-                const int ny = modL[y + dy[d]];
-                const int nsite = nx + ny * L;
+                nx = modL[x  + dx[d]];
+                ny = modL[y + dy[d]];
+                nsite = nx + ny * L;
                 // Check if each neighbor has the value of the clusters
                 // Do a probability check
                 if (lattice2[nsite] == value && p_rand(engine) < bond_prob) {
@@ -388,7 +362,7 @@ int main(int argc, const char * argv[]) {
         //generate_ising_lattice(lattice);
 		generate_lattice(lattice);
 
-        for (int i = 0; i < 250; i++) {
+        for (int i = 0; i < 1500*N; i++) {
         #pragma omp parallel num_threads(NUM_THREADS)
             {
                 refill_random();
@@ -397,7 +371,7 @@ int main(int argc, const char * argv[]) {
         }
         export_clusters(lattice, 1, true,
                 "./" + root + "/burn/" + to_string(L) + "_burn.txt");
-	cout << "burnt " + to_string(L) << endl;
+	    cout << "burnt " + to_string(L) << endl;
         return 0;
     }
 
