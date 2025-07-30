@@ -5,7 +5,6 @@
 #include <stack>
 #include <vector>
 #include <fstream>
-#include <chrono>
 #include <ranges>
 #include <algorithm>
 #include <omp.h>
@@ -30,23 +29,30 @@ const double D = -1000;
 const double J = 1;
 */
 
-// Tricritical
+// Tricritical parameter values
 constexpr double B = 1/0.608;
 constexpr double D = 1.966;
 constexpr double J = 1.0;
 
+// Lattice size determined at compile-time
 constexpr int L = static_cast<int>(L_MACRO);
 constexpr int N = L*L;
+
+// Instructions for navigating to nearest neighbors
 constexpr int dx[4] = {1, L-1, 0, 0};
 constexpr int dy[4] = {0, 0, 1, L-1};
 
+// Randome engines and distributions
 random_device rd{};
 mt19937 engine{rd()};
-array<mt19937, NUM_THREADS> engines;
-
 static uniform_real_distribution<double> p_rand{0.0, 1.0};
 static uniform_int_distribution<int> posn_rand{0, N-1};
 
+// Lookup table for x % L
+int modL[N];
+
+// Random buffers, including thread-specific Mersenne Twister engines
+array<mt19937, NUM_THREADS> engines;
 constexpr int RNG_BATCH_SIZE = 2*L*L*L + 3*L;
 constexpr int NUM_METRO_STEPS = 3*N;
 array<double, RNG_BATCH_SIZE> rng_buffer;
@@ -54,9 +60,6 @@ array<int, NUM_METRO_STEPS> flip_buffer;
 array<int, NUM_METRO_STEPS> posn_buffer;
 int rng_index = RNG_BATCH_SIZE;
 int flip_index = NUM_METRO_STEPS;
-
-// Lookup Tables
-int modL[N];
 
 void refill_random() {
     {
@@ -82,15 +85,6 @@ void refill_random() {
     flip_index = 0;
 }
 
-int get_posn_id(array<int,2> posn) {
-    // Converts posn coord, (x, y), to posn id
-    return posn[0] * L + posn[1];
-};
-
-array<int, 2> get_posn_from_id(int id) {
-    return {id / L, id % L};
-}
-
 void metropolis(int (& lattice)[N]) {
     // Note the current value, and create a random proposal
     // Proposal have p=0.5 of taking on either of the other values
@@ -98,7 +92,7 @@ void metropolis(int (& lattice)[N]) {
     const int current = lattice[posn];
     const int proposal = (current + 2 + flip_buffer[flip_index++]) % 3 - 1;
 
-    // Calculate the change in energy (from the blume-capel hamiltonian)
+    // Calculate the change in energy
     int neighbors = 0;
     const int x = modL[posn];
     const int y = posn/L;
@@ -106,8 +100,10 @@ void metropolis(int (& lattice)[N]) {
         const int neighbor = modL[(x + dx[d])] + modL[(y + dy[d])]*L;
         neighbors += lattice[neighbor];
     }
+    // Apply the Blume-Capel Hamiltonian
     const double de = - J * (proposal-current) * neighbors
                    + D * (proposal*proposal - current*current);
+
     // Accept/reject proposal based on the change in energy
     if (de <= 0 || rng_buffer[rng_index++] < exp (-B * de)) {
         lattice[posn] = proposal;
@@ -121,11 +117,10 @@ void wolff(int (&lattice)[N]) {
     int st_index = 0;
     int st_head = 0;
 
-    // Pick a non-zero random site
-    int value = 0, count = 0;
-    int seed = 0;
 
     // Generate a random site to seed the cluster
+    int value = 0, count = 0;
+    int seed = 0;
     while (value == 0 && count < N) {
         seed = posn_rand(engine);
         value = lattice[seed];
@@ -133,20 +128,22 @@ void wolff(int (&lattice)[N]) {
     }
     if (value == 0) return;
 
-    // Seed and flip the starting site
+    // Flip the starting value and add the seed to the stack
     const int flipped = -value;
-
     lattice[seed] = flipped;
     st[0] = seed;
 
+    // Iterate stack
     while (st_index <= st_head) {
         int site = st[st_index++];
         const int x = modL[site];
         const int y = site/L;
+        // Iterate through nearest neighbors
         for (int d = 0; d < 4; d++) {
             const int nx = modL[x  + dx[d]];
             const int ny = modL[y + dy[d]];
             const int neighbor = nx + ny * L;
+            // Probabilistically add same-spin neighbors to the cluster
             if (lattice[neighbor] == value && rng_buffer[rng_index++] < p) {
                 lattice[neighbor] = flipped;
                 st[++st_head] = neighbor;
@@ -167,22 +164,8 @@ void step(int (&lattice)[N]) {
 
 void generate_lattice(int (& lattice)[N]) {
     static uniform_int_distribution<int> fill_rand{-1, 1};
-    // Fills the lattice randomly
     for (int i = 0; i < N; i++) {
         lattice[i] = fill_rand(engine);
-    }
-}
-
-void generate_ising_lattice(int (& lattice)[N]) {
-    static uniform_int_distribution<int> ising_fill_rand{-1, 0};
-    for (int i = 0; i < L; i++) {
-        for (int j = 0; j < L; j++) {
-            int fill = ising_fill_rand(engine);
-            if (fill == 0) {
-                fill = 1;
-            }
-            lattice[i*L + j] = fill;
-        }
     }
 }
 
@@ -199,7 +182,6 @@ vector<Cluster> form_clusters(int (&lattice)[N], double bond_prob) {
         lattice2[i] = lattice[i];
     }
 
-    // List of clusters
     vector<Cluster> clusters;
 
     // Loop through every site in the lattice
@@ -219,13 +201,10 @@ vector<Cluster> form_clusters(int (&lattice)[N], double bond_prob) {
         // Set sites that are added to a cluster to 0 so they are not added again
         lattice2[i] = 0;
         int site;
-
-        // Go through stack and look at all nearest neighbors
         while (!st.empty()) {
             site = st.top();
             st.pop();
-
-            // Find nearest neighbor
+            // Check nearest neighbors
             const int x = modL[site];
             const int y = site/L;
             int nx, ny, nsite;
@@ -233,13 +212,10 @@ vector<Cluster> form_clusters(int (&lattice)[N], double bond_prob) {
                 nx = modL[x  + dx[d]];
                 ny = modL[y + dy[d]];
                 nsite = nx + ny * L;
-                // Check if each neighbor has the value of the clusters
-                // Do a probability check
+                // Probabilistically add same-spin neighbors to the cluster
                 if (lattice2[nsite] == value && p_rand(engine) < bond_prob) {
-                    // If same value and probability check, add to cluster and stack
                     st.push(nsite);
                     cluster.sites.push_back(nsite);
-
                     // Set sites that are added to a cluster to 0 so they are not added again
                     lattice2[nsite] = 0;
                 }
@@ -252,24 +228,13 @@ vector<Cluster> form_clusters(int (&lattice)[N], double bond_prob) {
     return clusters;
 }
 
-bool sort_key(int a, int b) {
-    // Sorts coordinates by their ids
-    return a < b;
-}
-
 void export_clusters(int (&lattice)[N], double p,  bool sign, string filename) {
-    // Exports clusters to a file
-
     // Get the clusters using form_clusters
     vector<Cluster> clusters = form_clusters(lattice, p);
 
-    // Initialize output
     string lines;
-
-    // Iterate through every cluster
     for (Cluster cluster : clusters) {
-        // Sort clusters
-        sort(cluster.sites.begin(), cluster.sites.end(), sort_key);
+        sort(cluster.sites.begin(), cluster.sites.end());
         string line;
         // Include sign if specified
         if (sign) {
@@ -290,6 +255,7 @@ void export_clusters(int (&lattice)[N], double p,  bool sign, string filename) {
     file.close();
 }
 Cluster generate_cluster_from_string(const string& line) {
+    // Convert string to cluster in gap format
     vector<string> result;
     stringstream ss(line);
     string segment;
@@ -314,12 +280,13 @@ Cluster generate_cluster_from_string(const string& line) {
 void get_lattice_from_burn(int (&lattice)[N], string burn) {
     string sample_text;
     ifstream sample_file(burn);
-    // Use a while loop together with the getline() function to read the file line by line
+    // Read file line by line
     while (getline(sample_file, sample_text)) {
         Cluster c = generate_cluster_from_string(sample_text);
         if (c.sites.size() == 0) {
             continue;
         }
+        // Convert from gap format to position
         int prev = c.sites[0];
         lattice[prev] = c.sign ? 1 : -1;
         for (int i = 1; i < c.sites.size(); i++) {
@@ -355,13 +322,13 @@ int main(int argc, const char * argv[]) {
         burn = 1;
     }
 
-    // Initialize and populate the lattice
     int lattice[N];
+    // If in burn-in stage, generate new lattice
     if (burn == 1) {
 		cout << "burning " + to_string(L) << endl;
-        //generate_ising_lattice(lattice);
 		generate_lattice(lattice);
 
+        // Burn-in consists of 1500N "MC steps"
         for (int i = 0; i < 1500*N; i++) {
         #pragma omp parallel num_threads(NUM_THREADS)
             {
@@ -375,6 +342,7 @@ int main(int argc, const char * argv[]) {
         return 0;
     }
 
+    // If not burning in, grab the burned-in lattice
     get_lattice_from_burn(lattice, "./" + root + "/burn/" + to_string(L) + "_burn.txt");
 
     // Data collection of 9*1500N steps
@@ -386,7 +354,6 @@ int main(int argc, const char * argv[]) {
             }
             step(lattice);
         }
-        // Export the data to text files
         export_clusters(lattice, 1, true,
             "./" + root + "/spin/" + to_string(L) + "/" + to_string(run) + "/" + to_string(i) + ".txt");
         export_clusters(lattice, 1 - exp (-2 * B * J), true,
