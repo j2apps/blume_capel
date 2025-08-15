@@ -169,8 +169,8 @@ void run_single_run(const string& input_dirname, const string& output_filename, 
 }
 
 void run_statistics(const string& input_root, const string& output_root) {
-    constexpr int nruns = 25;
-    for (int l: {16}) {
+    constexpr int nruns = 100;
+    for (int l: {12, 24, 48}) {
         // Write string ahead of time to avoid race conditions
 	    array<string, nruns> input_dirnames;
 	    array<string, nruns> output_filenames;
@@ -183,7 +183,6 @@ void run_statistics(const string& input_root, const string& output_root) {
         for (int run = 0; run < nruns; run++) {
             run_single_run(input_dirnames[run], output_filenames[run], l);
         }
-	
     }
 }
 int main(int argc, const char * argv[]) {

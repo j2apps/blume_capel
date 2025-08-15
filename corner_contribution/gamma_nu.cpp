@@ -31,7 +31,7 @@ int count_size(const string& line) {
     return count - 1;
 }
 
-int get_sample_statistics(const string& filename, int L) {
+double get_sample_statistics(const string& filename, int L) {
     ifstream sample_file(filename);
     if (sample_file.is_open()) {
         // File opened successfully, proceed with reading
@@ -49,7 +49,7 @@ int get_sample_statistics(const string& filename, int L) {
         sizes.push_back(size);
     }
 
-    int s = 0;
+    double s = 0;
     for (int size: sizes) {
         s += size*size;
     }
@@ -58,9 +58,9 @@ int get_sample_statistics(const string& filename, int L) {
     return s/(L*L);
 }
 
-int run_single_run(const string& input_dirname, int L) {
+double run_single_run(const string& input_dirname, int L) {
     // Initialize gap_size_statistics with size L/2, since there are L/2 possible gap sizes
-    int s_total;
+    double s_total;
     int num_samples = 0;
     // Find all files in the directory, get the gap sizes from each, and update num_samples
     for (const auto & entry : fs::directory_iterator(input_dirname)) {
@@ -71,25 +71,25 @@ int run_single_run(const string& input_dirname, int L) {
     return s_total/num_samples;
 }
 
-double stdev(const std::vector<int>& data) {
+double stdev(const std::vector<double>& data) {
     double sum = 0.0;
     double mean, standardDeviation = 0.0;
 
-    for (int value : data) {
+    for (double value : data) {
         sum += value;
     }
     mean = sum / data.size();
 
-    for (int value : data) {
+    for (double value : data) {
         standardDeviation += (value - mean) * (value - mean);
     }
 
     return sqrt(standardDeviation / data.size());
 }
 
-double mean(const std::vector<int>& data) {
+double mean(const std::vector<double>& data) {
     double sum = 0.0;
-    for (int value : data) {
+    for (double value : data) {
         sum += value;
     }
     return sum / data.size();
@@ -97,7 +97,8 @@ double mean(const std::vector<int>& data) {
 
 void run_statistics(const string& input_root, const string& output_root) {
     string output;
-    for (int l: {8, 16, 32, 64}) {
+    for (int l: {12, 16, 24, 32, 48, 64, 96, 128}) {
+        cout << l << endl;
         // Write string ahead of time to avoid race conditions
 	    array<string, 100> input_dirnames;
 	    for (int run=0; run<100; run++) {
@@ -105,17 +106,19 @@ void run_statistics(const string& input_root, const string& output_root) {
 	    }
 
         // Split runs up between threads
-        vector<int> statistics(100);
+        vector<double> statistics(100);
         #pragma omp parallel for num_threads(NUM_THREADS)
         for (int run = 0; run < 100; run++) {
             statistics[run] = run_single_run(input_dirnames[run], l);
         }
         output += to_string(l) + ": " + to_string(mean(statistics)) + " +- " + to_string(stdev(statistics)) + "\n";
     }
+    cout << "writing file to: " << output_root << endl;
     ofstream file;
     file.open(output_root);
     file << output << endl;
     file.close();
+    cout << "wrote to: " << output_root << endl;
 }
 int main(int argc, const char * argv[]) {
     // Ensure the correct arguments are in place
