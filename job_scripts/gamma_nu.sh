@@ -3,7 +3,7 @@
 #SBATCH --error=error.err
 #SBATCH --partition=b1140
 #SBATCH --nodes=1
-#SBATCH --ntasks-per-node=2
+#SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=8
 #SBATCH -t 1:00:00
 #SBATCH --mem=10M
@@ -14,11 +14,11 @@
 
 module purge all
 module load gcc/12.3.0-gcc
+mkdir -p $2
 
 g++ ./corner_contribution/gamma_nu.cpp -std=c++20 -fopenmp -DNUM_THREADS=8 -o ./compiled/gn
 
-./compiled/gn ./data/tricritical-7-29/spin ./corner_contribution/data/gn_tricritical-7-29/spin_gn.txt &
-./compiled/gn ./data/tricritical-7-29/fk ./corner_contribution/data/gn_tricritical-7-29/fk_gn.txt
+./compiled/gn $1/spin $2/spin.txt
 
 
 

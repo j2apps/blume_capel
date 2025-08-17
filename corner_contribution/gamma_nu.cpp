@@ -11,6 +11,7 @@
 #include <filesystem>
 #include <string>
 #include <array>
+#include <cmath>
 
 using namespace std;
 namespace fs = std::filesystem;
@@ -60,7 +61,7 @@ double get_sample_statistics(const string& filename, int L) {
 
 double run_single_run(const string& input_dirname, int L) {
     // Initialize gap_size_statistics with size L/2, since there are L/2 possible gap sizes
-    double s_total;
+    double s_total = 0;
     int num_samples = 0;
     // Find all files in the directory, get the gap sizes from each, and update num_samples
     for (const auto & entry : fs::directory_iterator(input_dirname)) {
@@ -96,22 +97,23 @@ double mean(const std::vector<double>& data) {
 }
 
 void run_statistics(const string& input_root, const string& output_root) {
-    string output;
+    string output = "L Corner_Contribution SE\n";
+
     for (int l: {12, 16, 24, 32, 48, 64, 96, 128}) {
-        cout << l << endl;
+        int nruns = 100;
         // Write string ahead of time to avoid race conditions
-	    array<string, 100> input_dirnames;
-	    for (int run=0; run<100; run++) {
+	    vector<string> input_dirnames(nruns);
+	    for (int run=0; run<nruns; run++) {
 		    input_dirnames[run] = input_root + "/" + to_string(l) + "/" + to_string(run);
 	    }
 
         // Split runs up between threads
-        vector<double> statistics(100);
+        vector<double> statistics(nruns);
         #pragma omp parallel for num_threads(NUM_THREADS)
-        for (int run = 0; run < 100; run++) {
+        for (int run = 0; run < nruns; run++) {
             statistics[run] = run_single_run(input_dirnames[run], l);
         }
-        output += to_string(l) + ": " + to_string(mean(statistics)) + " +- " + to_string(stdev(statistics)) + "\n";
+        output += to_string(l) + " " + to_string(mean(statistics)) + " " + to_string(stdev(statistics)/sqrt(nruns)) + "\n";
     }
     cout << "writing file to: " << output_root << endl;
     ofstream file;
