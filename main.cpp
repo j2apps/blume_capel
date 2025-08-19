@@ -23,18 +23,17 @@ using namespace std;
 
 
 // Ising critical
-
+/*
 const double B = 1 / 2.2691853;
 const double D = -1000;
 const double J = 1;
+*/
 
 
-/*
 // Tricritical parameter values
 constexpr double B = 1/0.608;
 constexpr double D = 1.966;
 constexpr double J = 1.0;
-*/
 
 // Lattice size determined at compile-time
 constexpr int L = static_cast<int>(L_MACRO);
@@ -44,7 +43,7 @@ constexpr int N = L*L;
 constexpr int dx[4] = {1, L-1, 0, 0};
 constexpr int dy[4] = {0, 0, 1, L-1};
 
-// Randome engines and distributions
+// Random engines and distributions
 random_device rd{};
 mt19937 engine{rd()};
 static uniform_real_distribution<double> p_rand{0.0, 1.0};
