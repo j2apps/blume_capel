@@ -16,10 +16,16 @@ module purge all
 module load gcc/12.3.0-gcc
 
 g++ ./corner_contribution/gap_size_statistics.cpp -std=c++20 -fopenmp -DNUM_THREADS=4 -o ./compiled/gap
-python3 ./corner_contribution/gen_gss_files.py ./corner_contribution/data/tricritical-7-29
+python3 ./corner_contribution/gen_gss_files.py $2
 
-./compiled/gap ./data/tricritical-7-29/spin ./corner_contribution/data/tricritical-7-29/spin &
-./compiled/gap ./data/tricritical-7-29/fk ./corner_contribution/data/tricritical-7-29/fk
+./compiled/gap $1/spin $2/spin &
+./compiled/gap $1/fk $2/fk
+
+echo spin
+python3 ./corner_contribution/gap_size_analysis.py $2/spin
+echo fk
+python3 ./corner_contribution/gap_size_analysis.py $2/fk
+
 
 
 

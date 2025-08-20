@@ -23,7 +23,7 @@ def get_gap_array(filename):
 if __name__ == "__main__":
     root = sys.argv[1]
     # Iterate through each L value
-    for l in (12, 16, 24, 32, 48, 64, 96, 128):
+    for l in (16, 32, 64):
         corner_contributions = list()
         # Find all files in the directory
         with os.scandir(f"{root}/{l}") as entries:
@@ -38,7 +38,7 @@ if __name__ == "__main__":
         # Calculate the mean and SE of the corner contribution
         mean_corner_contribution = statistics.mean(corner_contributions)
         stdev_corner_contribution = statistics.stdev(corner_contributions)
-        print(l, mean_corner_contribution, stdev_corner_contribution)
+        print(l, mean_corner_contribution, stdev_corner_contribution/10)
 
 
 '''

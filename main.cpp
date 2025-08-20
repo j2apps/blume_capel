@@ -23,17 +23,16 @@ using namespace std;
 
 
 // Ising critical
-/*
 const double B = 1 / 2.2691853;
 const double D = -1000;
 const double J = 1;
-*/
 
 
+/*
 // Tricritical parameter values
 constexpr double B = 1/0.608;
 constexpr double D = 1.966;
-constexpr double J = 1.0;
+constexpr double J = 1.0;*/
 
 // Lattice size determined at compile-time
 constexpr int L = static_cast<int>(L_MACRO);

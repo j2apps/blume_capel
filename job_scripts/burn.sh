@@ -7,7 +7,7 @@
 #SBATCH --mail-user=jonahkim2028@u.northwestern.edu
 module purge all
 
-./compiled/main_$1 0 ./data/tricritical-7-29 1
+./compiled/main_$1 0 ./data/ising-8-12 1
 
 
 

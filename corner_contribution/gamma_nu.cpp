@@ -97,10 +97,10 @@ double mean(const std::vector<double>& data) {
 }
 
 void run_statistics(const string& input_root, const string& output_root) {
-    string output = "L Corner_Contribution SE\n";
+    string output = "L Chi SE\n";
 
-    for (int l: {12, 16, 24, 32, 48, 64, 96, 128}) {
-        int nruns = 100;
+    for (int l: {12, 16, 24, 32}) {
+        int nruns = 24;
         // Write string ahead of time to avoid race conditions
 	    vector<string> input_dirnames(nruns);
 	    for (int run=0; run<nruns; run++) {
