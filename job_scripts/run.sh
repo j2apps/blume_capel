@@ -7,4 +7,4 @@
 #SBATCH --mail-user=jonahkim2028@u.northwestern.edu
 
 module purge all
-./compiled/main_$1 ${SLURM_ARRAY_TASK_ID} ./data/tri-metro-8-20 0
+./compiled/main_$1 ${SLURM_ARRAY_TASK_ID} ./data/ising-8-12 0 2.2691853 -1000 1

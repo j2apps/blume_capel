@@ -21,12 +21,13 @@
 
 using namespace std;
 
-
+double B; double D; double J;
+/*
 // Ising critical
 const double B = 1 / 2.2691853;
 const double D = -1000;
 const double J = 1;
-
+*/
 
 /*
 // Tricritical parameter values
@@ -315,11 +316,17 @@ int main(int argc, const char * argv[]) {
         run = atoi(argv[1]);
         root = argv[2];
         burn = atoi(argv[3]);
+        B = 1/atof(argv[4]);
+        D = atof(argv[5]);
+        J = atof(argv[6]);
     }
     else {
         run = 0;
         root = "NONE";
         burn = 1;
+        B = 1/0.608;
+        D = 1.966;
+        J = 1.0;
     }
 
     int lattice[N];

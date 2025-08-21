@@ -20,7 +20,7 @@ namespace fs = std::filesystem;
 #define NUM_THREADS 1
 #endif
 
-double get_magnetization(const string& filename, int L) {
+double get_magnetization(const string& filename) {
     ifstream sample_file(filename);
     if (sample_file.is_open()) {
         // File opened successfully, proceed with reading
@@ -35,19 +35,22 @@ double get_magnetization(const string& filename, int L) {
         if (sample_text[0] == '+') {
             sign = 1;
         }
-        else {
+        else if (sample_text[0] == '-') {
             sign = -1;
         }
+	    else {
+            continue;
+        }
+		
         stringstream ss(sample_text);
         string segment;
-	    int count = 0;
+	    int count = -1;
         while (getline(ss, segment, ' ')) {
             count ++;
         }
-        count --;
         m += sign*count;
     }
-    return m/(L*L);
+    return m;
 }
 
 double run_single_run(const string& input_dirname, int L) {
@@ -58,7 +61,7 @@ double run_single_run(const string& input_dirname, int L) {
     // Find all files in the directory, get the gap sizes from each, and update num_samples
     for (const auto & entry : fs::directory_iterator(input_dirname)) {
 	    string filepath = entry.path().string();
-        const double m = get_magnetization(filepath, L);
+        const double m = get_magnetization(filepath);
         m1 += abs(m);
         m2 += m*m;
 
@@ -66,7 +69,7 @@ double run_single_run(const string& input_dirname, int L) {
     }
     const double m1_avg = m1/num_samples;
     const double m2_avg = m2/num_samples;
-    return m2_avg - m1_avg*m1_avg;
+    return (m2_avg - m1_avg*m1_avg) / (L*L);
 }
 
 double stdev(const std::vector<double>& data) {
@@ -96,8 +99,9 @@ double mean(const std::vector<double>& data) {
 void run_statistics(const string& input_root, const string& output_root) {
     string output = "L X SE\n";
 
-    for (int l: {12, 16, 24, 32, 48, 64, 96, 128}) {
-        int nruns = 99;
+    for (int l: {8, 12, 16, 24, 32, 48, 64}) {
+        cout << "Starting " << l << endl;
+        int nruns = 100;
         // Write string ahead of time to avoid race conditions
 	    vector<string> input_dirnames(nruns);
 	    for (int run=0; run<nruns; run++) {
@@ -105,22 +109,25 @@ void run_statistics(const string& input_root, const string& output_root) {
 	    }
 
         // Split runs up between threads
-        vector<double> statistics(nruns);
+        vector<double> data(nruns);
         #pragma omp parallel for num_threads(NUM_THREADS)
         for (int run = 0; run < nruns; run++) {
-            statistics[run] = run_single_run(input_dirnames[run], l);
+            data[run] = run_single_run(input_dirnames[run], l);
         }
-        output += to_string(l) + " " + to_string(mean(statistics)) + " " + to_string(stdev(statistics)/sqrt(nruns)) + "\n";
+        output += to_string(l) + " " + to_string(mean(data)) + " " + to_string(stdev(data)/sqrt(nruns)) + "\n";
+        cout << "Finished " << l << endl;
     }
-    cout << "writing file to: " << output_root << endl;
+    cout << "writing file to: " << output_root << "\n" << flush;
     ofstream file;
     file.open(output_root);
     file << output << endl;
     file.close();
-    cout << "wrote to: " << output_root << endl;
+    cout << "wrote to: " << output_root << "\n" << flush;
+    
 }
 int main(int argc, const char * argv[]) {
     // Ensure the correct arguments are in place
+    cout << "Starting" << endl;
     if (argc != 3) {
         cout << argc << endl;
         return -1;
