@@ -96,6 +96,26 @@ double mean(const std::vector<double>& data) {
     return sum / data.size();
 }
 
+pair<double, double> jackknife(const vector<double>& data) {
+    const int n = data.size();
+    double full = mean(data)*n;
+    vector<double> estimates(n);
+
+
+    for (int i = 0; i < n; ++i) {
+        estimates[i] = (full - data[i]) / (n - 1);
+    }
+
+    double estimate_mean = mean(estimates);
+    double variance = 0.0;
+    for (int i = 0; i < n; ++i) {
+        variance += (estimates[i] - estimate_mean) * (estimates[i] - estimate_mean);
+    }
+    variance *= (n-1.0)/n;
+    pair<double, double> out = {estimate_mean, sqrt(variance)};
+    return out;
+}
+
 void run_statistics(const string& input_root, const string& output_root) {
     string output = "L X SE\n";
 
@@ -114,7 +134,8 @@ void run_statistics(const string& input_root, const string& output_root) {
         for (int run = 0; run < nruns; run++) {
             data[run] = run_single_run(input_dirnames[run], l);
         }
-        output += to_string(l) + " " + to_string(mean(data)) + " " + to_string(stdev(data)/sqrt(nruns)) + "\n";
+        pair<double, double> statistics = jackknife(data);
+        output += to_string(l) + " " + to_string(statistics.first) + " " + to_string(statistics.second) + "\n";
         cout << "Finished " << l << endl;
     }
     cout << "writing file to: " << output_root << "\n" << flush;
