@@ -98,8 +98,7 @@ double mean(const std::vector<double>& data) {
 }
 
 void run_statistics(const string& input_root, const string& output_root) {
-    string output = "L X SE\n";
-
+    string output = "batch,L,magnetic_susceptibility,standard_error\n";
     for (int l: {8, 12, 16, 24, 32, 48, 64}) {
         cout << "Starting " << l << endl;
         int nruns = 100;
@@ -116,7 +115,6 @@ void run_statistics(const string& input_root, const string& output_root) {
             data[run] = run_single_run(input_dirnames[run], l);
         }
         // Temporary batched data output
-        output += "batch,L,magnetic_susceptibility,standard_error\n"
         for (int i = 0; i < 10; i++) {
             vector<double> batched_data(10);
             for (int j = 0; j < nruns; j++) {
