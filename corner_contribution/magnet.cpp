@@ -115,9 +115,20 @@ void run_statistics(const string& input_root, const string& output_root) {
         for (int run = 0; run < nruns; run++) {
             data[run] = run_single_run(input_dirnames[run], l);
         }
-        pair<double, double> statistics = jackknife(data);
-        output += to_string(l) + " " + to_string(mean(data)) + " " + to_string(stdev(data)/sqrt(nruns)) + "\n";
-        cout << "Finished " << l << endl;
+        // Temporary batched data output
+        output += "batch,L,magnetic_susceptibility,standard_error\n"
+        for (int i = 0; i < 10; i++) {
+            vector<double> batched_data(10);
+            for (int j = 0; j < nruns; j++) {
+                batched_data[j] = data[i*10 + j];
+            }
+            output += i + ","
+            + to_string(l) + ","
+            + to_string(mean(bathced_data)) + ","
+            + to_string(stdev(data)/sqrt(10));
+        }
+        /*output += to_string(l) + " " + to_string(mean(data)) + " " + to_string(stdev(data)/sqrt(nruns)) + "\n";
+        cout << "Finished " << l << endl;*/
     }
     cout << "writing file to: " << output_root << "\n" << flush;
     ofstream file;
