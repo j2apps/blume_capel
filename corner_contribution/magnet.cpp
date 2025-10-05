@@ -99,8 +99,7 @@ double mean(const std::vector<double>& data) {
 
 void run_statistics(const string& input_root, const string& output_root) {
     string output = "batch,L,magnetic_susceptibility,standard_error\n";
-    for (int l: {8, 12, 16, 24, 32, 48, 64}) {
-        cout << "Starting " << l << endl;
+    for (int l: {12, 16}) {
         int nruns = 100;
         // Write string ahead of time to avoid race conditions
 	    vector<string> input_dirnames(nruns);
@@ -117,28 +116,27 @@ void run_statistics(const string& input_root, const string& output_root) {
         // Temporary batched data output
         for (int i = 0; i < 10; i++) {
             vector<double> batched_data(10);
-            for (int j = 0; j < nruns; j++) {
+            for (int j = 0; j < 10; j++) {
                 batched_data[j] = data[i*10 + j];
             }
-            output += i + ","
+            output += to_string(i) + ","
             + to_string(l) + ","
-            + to_string(mean(bathced_data)) + ","
-            + to_string(stdev(data)/sqrt(10));
+            + to_string(mean(batched_data)) + ","
+            + to_string(stdev(batched_data)/sqrt(10)) + "\n";
         }
         /*output += to_string(l) + " " + to_string(mean(data)) + " " + to_string(stdev(data)/sqrt(nruns)) + "\n";
         cout << "Finished " << l << endl;*/
     }
-    cout << "writing file to: " << output_root << "\n" << flush;
     ofstream file;
     file.open(output_root);
     file << output << endl;
     file.close();
-    cout << "wrote to: " << output_root << "\n" << flush;
+    //cout << "wrote to: " << output_root << "\n" << flush;
     
 }
 int main(int argc, const char * argv[]) {
     // Ensure the correct arguments are in place
-    cout << "Starting" << endl;
+    //cout << "Starting" << endl;
     if (argc != 3) {
         cout << argc << endl;
         return -1;
