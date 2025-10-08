@@ -8,7 +8,7 @@
 #SBATCH -t 4:00:00
 #SBATCH --mem=10M
 #SBATCH --job-name="magnet"
-#SBATCH --output=outputs/magnet.txt
+#SBATCH --output=outputs/magnet_batch.txt
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=jonahkim2028@u.northwestern.edu
 
