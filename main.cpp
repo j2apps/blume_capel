@@ -312,18 +312,21 @@ int main(int argc, const char * argv[]) {
     int run;
     string root;
     int burn;
+    int nsteps;
     if (argc > 1) {
         run = atoi(argv[1]);
         root = argv[2];
         burn = atoi(argv[3]);
-        B = 1/atof(argv[4]);
-        D = atof(argv[5]);
-        J = atof(argv[6]);
+        nsteps = atoi(argv[4]);
+        B = 1/atof(argv[5]);
+        D = atof(argv[6]);
+        J = atof(argv[7]);
     }
     else {
         run = 0;
         root = "NONE";
-        burn = 1;
+        burn = 2;
+        nsteps = 1500;
         B = 1/0.608;
         D = 1.966;
         J = 1.0;
@@ -331,7 +334,7 @@ int main(int argc, const char * argv[]) {
 
     int lattice[N];
     // If in burn-in stage, generate new lattice
-    if (burn == 1) {
+    if (burn >= 1) {
 		cout << "burning " + to_string(L) << endl;
 		generate_lattice(lattice);
 
@@ -346,14 +349,16 @@ int main(int argc, const char * argv[]) {
         export_clusters(lattice, 1, true,
                 "./" + root + "/burn/" + to_string(L) + "_burn.txt");
 	    cout << "burnt " + to_string(L) << endl;
-        return 0;
+        if (burn == 1) {
+            return 0;
+        }
     }
 
     // If not burning in, grab the burned-in lattice
     get_lattice_from_burn(lattice, "./" + root + "/burn/" + to_string(L) + "_burn.txt");
 
     // Data collection of 9*1500N steps
-    for (int i = 0; i < 1500; i++) {
+    for (int i = 0; i < nsteps; i++) {
         for (int j = 0; j < 9 * N; j++) {
             #pragma omp parallel num_threads(NUM_THREADS)
             {
