@@ -1,6 +1,7 @@
 import statistics
 import os
 import sys
+import math
 def get_corner_contribution(gap_size_statistics, num_samples, L, l):
     # Apply corner contribution formula
     acc = 0
@@ -23,22 +24,28 @@ def get_gap_array(filename):
 if __name__ == "__main__":
     root = sys.argv[1]
     # Iterate through each L value
-    for l in (12, 16, 24, 32, 48, 64, 96, 128):
-        corner_contributions = list()
-        # Find all files in the directory
-        with os.scandir(f"{root}/{l}") as entries:
-            for entry in entries:
-                # Get the stats and number of samples from each file
-                gap_size_statistics, num_samples = get_gap_array(entry)
-                if (num_samples==0):
-                    continue
-                # Get the corner contribution and append
-                corner_contribution = get_corner_contribution(gap_size_statistics, num_samples, l, l//2)
-                corner_contributions.append(corner_contribution)
-        # Calculate the mean and SE of the corner contribution
-        mean_corner_contribution = statistics.mean(corner_contributions)
-        stdev_corner_contribution = statistics.stdev(corner_contributions)
-        print(l, mean_corner_contribution, stdev_corner_contribution)
+    for cluster_type in ('fk', 'spin'):
+        with open(f'{root}/gap/{cluster_type}.txt', 'w') as file:
+            file.write('Batch,L,Corner_Contribution,Error')
+        for l in (8, 12, 16, 24, 32, 48, 64):
+            corner_contributions = list()
+            # Find all files in the directory
+            with os.scandir(f"{root}/gap/{cluster_type}/{l}") as entries:
+                for entry in entries:
+                    # Get the stats and number of samples from each file
+                    gap_size_statistics, num_samples = get_gap_array(entry)
+                    if (num_samples==0):
+                        continue
+                    # Get the corner contribution and append
+                    corner_contribution = get_corner_contribution(gap_size_statistics, num_samples, l, l//2)
+                    corner_contributions.append(corner_contribution)
+            # Calculate the mean and SE of the corner contribution
+            for i in range(10):
+                mean_corner_contribution = statistics.mean(corner_contributions[i*10:(i+1)*10])
+                stdev_corner_contribution = statistics.stdev(corner_contributions[i*10:(i+1)*10])
+                with open(f'{root}/gap/{cluster_type}.txt', 'a') as file:
+                    file.write(f'\n{i},{l},{mean_corner_contribution},{stdev_corner_contribution/math.sqrt(10)}')
+            print(l, mean_corner_contribution, stdev_corner_contribution/math.sqrt(1))
 
 
 '''

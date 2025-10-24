@@ -12,6 +12,7 @@
 #include <string>
 #include <array>
 #include <cmath>
+#include <utility>
 
 using namespace std;
 namespace fs = std::filesystem;
@@ -20,19 +21,7 @@ namespace fs = std::filesystem;
 #define NUM_THREADS 1
 #endif
 
-
-int count_size(const string& line) {
-    stringstream ss(line);
-    string segment;
-    int count = 0;
-	
-    while (getline(ss, segment, ' ')) {
-        count ++;
-    }
-    return count - 1;
-}
-
-double get_sample_statistics(const string& filename, int L) {
+double get_magnetization(const string& filename) {
     ifstream sample_file(filename);
     if (sample_file.is_open()) {
         // File opened successfully, proceed with reading
@@ -40,36 +29,48 @@ double get_sample_statistics(const string& filename, int L) {
         cerr << "Error: Could not open file." << std::endl;
     }
     string sample_text;
-    vector<int> sizes;
+    double m = 0;
     // Use a while loop together with the getline() function to read the file line by line
     while (getline(sample_file, sample_text)) {
-        int size = count_size(sample_text);
-        if (size == 0) {
-        continue;
+        int sign;
+        if (sample_text[0] == '+') {
+            sign = 1;
         }
-        sizes.push_back(size);
+        else if (sample_text[0] == '-') {
+            sign = -1;
+        }
+	    else {
+            continue;
+        }
+		
+        stringstream ss(sample_text);
+        string segment;
+	    int count = -1;
+        while (getline(ss, segment, ' ')) {
+            count ++;
+        }
+        m += sign*count;
     }
-
-    double s = 0;
-    for (int size: sizes) {
-        s += size*size;
-    }
-    const int max = *max_element(sizes.begin(), sizes.end());
-    s -=  max*max;
-    return s/(L*L);
+    return m;
 }
 
 double run_single_run(const string& input_dirname, int L) {
     // Initialize gap_size_statistics with size L/2, since there are L/2 possible gap sizes
-    double s_total = 0;
+    double m1 = 0;
+    double m2 = 0;
     int num_samples = 0;
     // Find all files in the directory, get the gap sizes from each, and update num_samples
     for (const auto & entry : fs::directory_iterator(input_dirname)) {
 	    string filepath = entry.path().string();
-        s_total += get_sample_statistics(filepath, L);
+        const double m = get_magnetization(filepath);
+        m1 += abs(m);
+        m2 += m*m;
+
         num_samples ++;
     }
-    return s_total/num_samples;
+    const double m1_avg = m1/num_samples;
+    const double m2_avg = m2/num_samples;
+    return (m2_avg - m1_avg*m1_avg) / (L*L);
 }
 
 double stdev(const std::vector<double>& data) {
@@ -97,10 +98,9 @@ double mean(const std::vector<double>& data) {
 }
 
 void run_statistics(const string& input_root, const string& output_root) {
-    string output = "L Chi SE\n";
-
-    for (int l: {12, 16, 24, 32}) {
-        int nruns = 24;
+    string output = "batch,L,magnetic_susceptibility,standard_error\n";
+    for (int l: {48, 64}) {
+        int nruns = 100;
         // Write string ahead of time to avoid race conditions
 	    vector<string> input_dirnames(nruns);
 	    for (int run=0; run<nruns; run++) {
@@ -108,22 +108,35 @@ void run_statistics(const string& input_root, const string& output_root) {
 	    }
 
         // Split runs up between threads
-        vector<double> statistics(nruns);
+        vector<double> data(nruns);
         #pragma omp parallel for num_threads(NUM_THREADS)
         for (int run = 0; run < nruns; run++) {
-            statistics[run] = run_single_run(input_dirnames[run], l);
+            data[run] = run_single_run(input_dirnames[run], l);
         }
-        output += to_string(l) + " " + to_string(mean(statistics)) + " " + to_string(stdev(statistics)/sqrt(nruns)) + "\n";
+        // Temporary batched data output
+        for (int i = 0; i < 10; i++) {
+            vector<double> batched_data(10);
+            for (int j = 0; j < 10; j++) {
+                batched_data[j] = data[i*10 + j];
+            }
+            output += to_string(i) + ","
+            + to_string(l) + ","
+            + to_string(mean(batched_data)) + ","
+            + to_string(stdev(batched_data)/sqrt(10)) + "\n";
+        }
+	    ofstream file;
+        file.open(output_root);
+        file << output << endl;
+        file.close();
+        /*output += to_string(l) + " " + to_string(mean(data)) + " " + to_string(stdev(data)/sqrt(nruns)) + "\n";
+        cout << "Finished " << l << endl;*/
+    
+    //cout << "wrote to: " << output_root << "\n" << flush;
     }
-    cout << "writing file to: " << output_root << endl;
-    ofstream file;
-    file.open(output_root);
-    file << output << endl;
-    file.close();
-    cout << "wrote to: " << output_root << endl;
 }
 int main(int argc, const char * argv[]) {
     // Ensure the correct arguments are in place
+    //cout << "Starting" << endl;
     if (argc != 3) {
         cout << argc << endl;
         return -1;
