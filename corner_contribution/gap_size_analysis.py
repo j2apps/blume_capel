@@ -27,7 +27,7 @@ if __name__ == "__main__":
     for cluster_type in ('fk', 'spin'):
         with open(f'{root}/gap/{cluster_type}.txt', 'w') as file:
             file.write('Batch,L,Corner_Contribution,Error')
-        for l in (12, 16, 24, 32, 48, 64, 96, 128):
+        for l in (8, 12, 16, 24, 32, 48, 64):
             corner_contributions = list()
             # Find all files in the directory
             with os.scandir(f"{root}/gap/{cluster_type}/{l}") as entries:

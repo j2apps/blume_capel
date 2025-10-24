@@ -99,7 +99,7 @@ double mean(const std::vector<double>& data) {
 
 void run_statistics(const string& input_root, const string& output_root) {
     string output = "batch,L,magnetic_susceptibility,standard_error\n";
-    for (int l: {12, 16, 24, 32, 48, 64, 96, 128}) {
+    for (int l: {48, 64}) {
         int nruns = 100;
         // Write string ahead of time to avoid race conditions
 	    vector<string> input_dirnames(nruns);
@@ -124,15 +124,15 @@ void run_statistics(const string& input_root, const string& output_root) {
             + to_string(mean(batched_data)) + ","
             + to_string(stdev(batched_data)/sqrt(10)) + "\n";
         }
+	    ofstream file;
+        file.open(output_root);
+        file << output << endl;
+        file.close();
         /*output += to_string(l) + " " + to_string(mean(data)) + " " + to_string(stdev(data)/sqrt(nruns)) + "\n";
         cout << "Finished " << l << endl;*/
-    }
-    ofstream file;
-    file.open(output_root);
-    file << output << endl;
-    file.close();
-    //cout << "wrote to: " << output_root << "\n" << flush;
     
+    //cout << "wrote to: " << output_root << "\n" << flush;
+    }
 }
 int main(int argc, const char * argv[]) {
     // Ensure the correct arguments are in place
