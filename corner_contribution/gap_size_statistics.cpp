@@ -142,6 +142,25 @@ void get_sample_gap_sizes(vector<int>& gap_size_statistics, const string& filena
         get_cluster_gap_sizes(gap_size_statistics, lines, L);
     }
 }
+int countSubdirectories(const fs::path& directoryPath) {
+    int count = 0;
+    try {
+        if (!fs::exists(directoryPath) || !fs::is_directory(directoryPath)) {
+            cerr << "Error: Path does not exist or is not a directory." << endl;
+            return -1; // Indicate an error
+        }
+
+        for (const auto& entry : fs::directory_iterator(directoryPath)) {
+            if (fs::is_directory(entry.status())) {
+                count++;
+            }
+        }
+    } catch (const fs::filesystem_error& e) {
+        cerr << "Filesystem error: " << e.what() << endl;
+        return -1; // Indicate an error
+    }
+    return count;
+}
 
 void run_single_run(const string& input_dirname, const string& output_filename, const int L) {
     // Initialize gap_size_statistics with size L/2, since there are L/2 possible gap sizes
@@ -169,11 +188,11 @@ void run_single_run(const string& input_dirname, const string& output_filename, 
 }
 
 void run_statistics(const string& input_root, const string& output_root) {
-    constexpr int nruns = 100;
-    for (int l: {48, 64}) {
+    for (int l: {8, 12, 16, 24, 32, 48, 64}) {
+        int nruns = countSubdirectories(input_root + "/" + to_string(l));
         // Write string ahead of time to avoid race conditions
-	    array<string, nruns> input_dirnames;
-	    array<string, nruns> output_filenames;
+	    vector<string> input_dirnames(nruns);
+	    vector<string> output_filenames(nruns);
 	    for (int run=0; run<nruns; run++) {
 		    input_dirnames[run] = input_root + "/" + to_string(l) + "/" + to_string(run);
 		    output_filenames[run] = output_root + "/" + to_string(l) + "/" + to_string(run) + ".txt";

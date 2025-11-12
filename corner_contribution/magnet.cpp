@@ -97,10 +97,30 @@ double mean(const std::vector<double>& data) {
     return sum / data.size();
 }
 
+int countSubdirectories(const fs::path& directoryPath) {
+    int count = 0;
+    try {
+        if (!fs::exists(directoryPath) || !fs::is_directory(directoryPath)) {
+            cerr << "Error: Path does not exist or is not a directory." << endl;
+            return -1; // Indicate an error
+        }
+
+        for (const auto& entry : fs::directory_iterator(directoryPath)) {
+            if (fs::is_directory(entry.status())) {
+                count++;
+            }
+        }
+    } catch (const fs::filesystem_error& e) {
+        cerr << "Filesystem error: " << e.what() << endl;
+        return -1; // Indicate an error
+    }
+    return count;
+}
+
 void run_statistics(const string& input_root, const string& output_root) {
     string output = "batch,L,magnetic_susceptibility,standard_error\n";
-    for (int l: {48, 64}) {
-        int nruns = 100;
+    for (int l: {8, 12, 16, 24, 32, 48, 64}) {
+        int nruns = countSubdirectories(input_root + "/" + to_string(l));
         // Write string ahead of time to avoid race conditions
 	    vector<string> input_dirnames(nruns);
 	    for (int run=0; run<nruns; run++) {
@@ -114,15 +134,15 @@ void run_statistics(const string& input_root, const string& output_root) {
             data[run] = run_single_run(input_dirnames[run], l);
         }
         // Temporary batched data output
-        for (int i = 0; i < 10; i++) {
-            vector<double> batched_data(10);
-            for (int j = 0; j < 10; j++) {
-                batched_data[j] = data[i*10 + j];
+        for (int i = 0; i < 5; i++) {
+            vector<double> batched_data(5);
+            for (int j = 0; j < 5; j++) {
+                batched_data[j] = data[i*5 + j];
             }
             output += to_string(i) + ","
             + to_string(l) + ","
             + to_string(mean(batched_data)) + ","
-            + to_string(stdev(batched_data)/sqrt(10)) + "\n";
+            + to_string(stdev(batched_data)/sqrt(5)) + "\n";
         }
 	    ofstream file;
         file.open(output_root);

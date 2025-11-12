@@ -99,6 +99,7 @@ Main program:
 Outputs position-averaged S_cr
 """
 def main():
+    print("RUNNING")
     p1 = 0
     p2 = l
     x3 = (l * slant) % L
@@ -154,8 +155,7 @@ file = sys.argv[1]
 L = sys.argv[2]
 disorder = sys.argv[3]
 max_slant = sys.argv[4]
-batch = sys.argv[5]
-outfile = sys.argv[6]
+outfile = sys.argv[5]
 
 L = int(L)
 if (L % 2 == 1):
@@ -182,22 +182,26 @@ sites = np.full(L**2, -1, dtype=int)
 cn = 0
 
 with open(file, 'r+') as f:
-    for raw_cluster in f:
-        cluster = np.array(raw_cluster.split(), dtype=int)
-        id = cluster[1]
+    for line in f:
+        raw_cluster = line.strip()
+        split = raw_cluster.split(" ")
+        cluster = np.array(split[1:], dtype=int)
+        if cluster.size == 0:
+            continue
+        id = cluster[0]
         clust_ids[id] = cn
         size = len(cluster)
         cluster_sizes = np.append(cluster_sizes, size)
         site = id
         sites[site] = cn
-        for i in range(2, len(cluster)):
+        for i in range(1, len(cluster)):
             site = site + cluster[i]
             sites[site] = cn
         cn = cn + 1
 
 ### FUNCTION CALL ###
 
-for slant in range(max_slant):
+for slant in range(max_slant+1):
     if (fsize==0):
         scr = 0.0
     else:

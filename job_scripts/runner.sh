@@ -2,8 +2,8 @@ module purge all
 module load gcc/12.3.0-gcc
 
 declare -a sizes=(8 12 16 24 32 48 64)
-declare -a nsamples=(15000 15000 15000 15000 5000 5000 1500)
-declare -a nruns=(100 100 50 50 50 50 50)
+declare -a nsamples=(15000 15000 15000 15000 5000 5000 1000)
+declare -a nruns=(25 25 25 25 25 25 25)
 declare -a cores=(1 1 1 1 2 4 4)
 declare -a partition=(short short normal normal normal long long)	
 declare -a time=(1 1 48 48 48 168 168)

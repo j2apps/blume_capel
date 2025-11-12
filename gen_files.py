@@ -17,6 +17,6 @@ if __name__ == "__main__":
 	Path(f'./{root}/gap').mkdir(parents=True, exist_ok=True)
 	Path(f'./{root}/gap/spin').mkdir(parents=True, exist_ok=True)
 	Path(f'./{root}/gap/fk').mkdir(parents=True, exist_ok=True)
-	for l in (8, 12, 16, 24, 32, 48, 64, 96, 128):
+	for l in (8, 12, 16, 24, 32, 48, 64):
 		Path(f'./{root}/gap/spin/{l}').mkdir(parents=True, exist_ok=True)
 		Path(f'./{root}/gap/fk/{l}').mkdir(parents=True, exist_ok=True)
