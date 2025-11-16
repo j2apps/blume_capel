@@ -107,7 +107,12 @@ int countSubdirectories(const fs::path& directoryPath) {
         }
 
         for (const auto& entry : fs::directory_iterator(directoryPath)) {
-            if (fs::is_directory(entry.status())) {
+            bool has_files = false;
+            for (const auto & entry : fs::directory_iterator(directoryPath)) {
+                has_files = true;
+                break;
+            }
+            if (fs::is_directory(entry.status()) && has_files) {
                 count++;
             }
         }
