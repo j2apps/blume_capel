@@ -40,7 +40,7 @@ if __name__ == "__main__":
                     corner_contribution = get_corner_contribution(gap_size_statistics, num_samples, l, l//2)
                     corner_contributions.append(corner_contribution)
             # Calculate the mean and SE of the corner contribution
-            num_batches = 5
+            num_batches = 10
 
             for i in range(num_batches):
                 samples_per_bucket = len(corner_contributions) // num_batches

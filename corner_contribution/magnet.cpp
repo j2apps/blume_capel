@@ -106,7 +106,7 @@ int countSubdirectories(const fs::path& directoryPath) {
             return -1; // Indicate an error
         }
 
-        for (const auto& entry : fs::directory_iterator(directoryPath)) {
+	for (const auto& entry : fs::directory_iterator(directoryPath)) {
             bool has_files = false;
             for (const auto & entry : fs::directory_iterator(directoryPath)) {
                 has_files = true;
@@ -139,7 +139,7 @@ void run_statistics(const string& input_root, const string& output_root, const i
         for (int run = 0; run < nruns; run++) {
             pair<double, double> result = run_single_run(input_dirnames[run], l);
             m[run] = result.first / (l*l);
-            x[run] = (result.second - result.first*result.first) / l*l;
+            x[run] = (result.second - result.first*result.first) / (l*l);
         }
         // Temporary batched data output
         for (int i = 0; i < n_batches; i++) {

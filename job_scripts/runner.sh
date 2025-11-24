@@ -3,11 +3,11 @@ module load gcc/12.3.0-gcc
 
 declare -a sizes=(8 12 16 24 32 48 64)
 declare -a nsamples=(100000 100000 10000 10000 5000 5000 1500)
-declare -a nruns=(75 75 75 75 75 75 75)
+declare -a nruns=(100 100 100 100 100 100 100)
 declare -a cores=(1 1 1 1 2 4 4)
 declare -a partition=(short short normal normal normal long long)	
 declare -a time=(1 1 48 48 48 168 168)
-declare -a mem=(20 20 30 30 40 40 50)
+declare -a mem=(20 20 20 20 20 20 20)
 
 for i in {0..6};
 do
