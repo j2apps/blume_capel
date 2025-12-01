@@ -5,10 +5,12 @@ import numpy as np
 def convert_file(filename, L):
     lattice = np.full(L*L, -1, dtype=int)
     with open(filename, 'r') as file:
-        curr_id = L*L
+        curr_id = 0
         # Assign ids to clusters
         for line in file:
-            split = line.split()
+            split = line.strip().split()
+            if len(split) == 0:
+                continue
             curr_posn = int(split[1])
             lattice[curr_posn] = curr_id
             gaps = split[2:]
@@ -30,22 +32,30 @@ def convert_file(filename, L):
 
 def convert_directory(input_dirname, output_dirname, L):
     files = os.listdir(input_dirname)
-    for i, filename in files:
-        with open(f"{output_dirname}/{i}") as file:
-            file.write(convert_file(filename, L))
+    for filename in files:
+        in_path = os.path.join(input_dirname, filename)
+        with open(f"{output_dirname}/{filename}", 'w') as file:
+            file.write(convert_file(in_path, L))
 
-def convert_dataset(input_root, output_root, types, sizes):
+def convert_dataset(input_root, output_root, types, sizes, runs):
     for type in types:
-        os.mkdir(f"{output_root}/{type}", exist_ok=True)
+        os.makedirs(f"{output_root}/{type}", exist_ok=True)
         for L in sizes:
-            os.mkdir(f"{output_root}/{type}/{L}", exist_ok=True)
-            input_dirname = f"{input_root}/{type}/{L}"
-            output_dirname = f"{output_root}/{type}/{L}"
-            convert_directory(input_dirname, output_dirname, L)
+            os.makedirs(f"{output_root}/{type}/{L}", exist_ok=True)
+            for run in runs:
+                os.makedirs(f"{output_root}/{type}/{L}/{run}", exist_ok=True)
+                input_dirname = f"{input_root}/{type}/{L}/{run}"
+                output_dirname = f"{output_root}/{type}/{L}/{run}"
+                convert_directory(input_dirname, output_dirname, L)
 
 if __name__ == "__main__":
     input_root = sys.argv[1]
-    output_root = sys.argv[2]
-    sizes = (8, 12, 16, 24, 32, 64)
+    run_base = int(sys.argv[2])
+    nruns = int(sys.argv[3])
+    output_root = f"{input_root}/lattice"
+    os.makedirs(output_root, exist_ok=True)
+    sizes = (12, 16, 24, 32, 48, 64)
     types = ("fk", "spin")
-    convert_dataset(input_root, output_root)
+    runs = range(run_base, run_base+nruns)
+    convert_dataset(input_root, output_root, types, sizes, runs)
+    # print(convert_file(input_root, 8))

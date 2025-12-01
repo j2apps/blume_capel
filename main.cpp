@@ -370,6 +370,7 @@ int main(int argc, const char * argv[]) {
             "./" + root + "/spin/" + to_string(L) + "/" + to_string(run) + "/" + to_string(i) + ".txt");
         export_clusters(lattice, 1 - exp (-2 * B * J), true,
             "./" + root + "/fk/" + to_string(L) + "/" + to_string(run) + "/" + to_string(i) + ".txt");
+        /*cout << "writing to file: " << "./" + root + "/spin/" + to_string(L) + "/" + to_string(run) + "/" + to_string(i) + ".txt" << endl;*/
     }
     return 0;
 }
