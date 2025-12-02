@@ -56,7 +56,7 @@ void get_cluster_gap_sizes(vector<int>& gap_size_statistics, vector<int> cluster
     }
 }
 void get_cluster_gap_sizes(vector<int>& gap_size_statistics, vector<vector<int>> cluster, const int L) {
-    for (vector<int> line: cluster) {
+    /*for (vector<int> line: cluster) {
         bool largest = false;
 
         // Special case for only 2 sites
@@ -66,7 +66,7 @@ void get_cluster_gap_sizes(vector<int>& gap_size_statistics, vector<vector<int>>
             gap_size_statistics[gap-1] ++;
             continue;
         }
-        // If more than 2 sites, procede
+        // If more than 2 sites, proceed
         // Compute the gaps, include the one between the first and last element
         for (int i = 0; i < line.size() - 1; i++) {
             int gap = line[i+1] - line[i];
@@ -77,6 +77,21 @@ void get_cluster_gap_sizes(vector<int>& gap_size_statistics, vector<vector<int>>
         int gap = line[line.size() - 1] - line[0];
         gap = min(gap, L - gap);
         gap_size_statistics[gap-1] ++;
+    }*/
+    for (const auto& line : cluster) {
+        int n = line.size();
+        if (n < 2) continue;
+
+        // Count all gaps
+        for (int k = 0; k < n; ++k) {
+            int a = line[k];
+            int b = line[(k + 1) % n];
+            int gap = (b - a + L) % L;
+
+            if (gap > L/2) gap = L - gap;
+
+            gap_size_statistics[gap - 1]++;
+        }
     }
 }
 
@@ -215,4 +230,5 @@ int main(int argc, const char * argv[]) {
     const string output = argv[2];
     run_statistics(input, output);
     return 0;
+    // run_single_run("./sample_data/0", "./sample_data/gap.txt", 64);
 }
