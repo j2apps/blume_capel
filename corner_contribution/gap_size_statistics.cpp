@@ -112,12 +112,14 @@ vector<int> splitString(const string& line) {
     return result_int;
 }
 
-vector<vector<int>> convert_cluster_to_lines(vector<int> cluster, const int L) {
+// TODO: FIX THIS FUNCTION
+vector<vector<int>> convert_cluster_to_lines(const vector<int> &cluster, const int L) {
     // Allocate result vector
     vector<vector<int>> result;
     // Get the starting position from the cluster
-    int posn = cluster[0] / L;
+    int posn = cluster[0] % L;
     vector<int> line;
+    line.push_back(posn);
     for (int i = 1; i < cluster.size(); i++) {
         // Find the updated posn based on the gap
         posn += cluster[i];
@@ -129,7 +131,9 @@ vector<vector<int>> convert_cluster_to_lines(vector<int> cluster, const int L) {
             }
             line.clear();
             posn %= L;
+            // cout << endl;
         }
+        // cout << posn << endl;
         // Append posn to the appropriate line
         line.push_back(posn);
     }
@@ -221,6 +225,7 @@ void run_statistics(const string& input_root, const string& output_root) {
 }
 int main(int argc, const char * argv[]) {
     // Ensure the correct arguments are in place
+    /*
     if (argc != 3) {
         cout << argc << endl;
         return -1;
@@ -230,5 +235,6 @@ int main(int argc, const char * argv[]) {
     const string output = argv[2];
     run_statistics(input, output);
     return 0;
-    // run_single_run("./sample_data/0", "./sample_data/gap.txt", 64);
+    */
+    run_single_run("./sample_data/L64_Ising", "./sample_data/gap64.txt", 64);
 }
