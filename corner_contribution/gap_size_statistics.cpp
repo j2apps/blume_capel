@@ -168,7 +168,7 @@ void run_statistics(const string& input_root, const string& output_root) {
 }
 int main(int argc, const char * argv[]) {
     // Ensure the correct arguments are in place
-    /*
+    
     if (argc != 3) {
         cout << argc << endl;
         return -1;
@@ -178,6 +178,6 @@ int main(int argc, const char * argv[]) {
     const string output = argv[2];
     run_statistics(input, output);
     return 0;
-    */
-    run_single_run("./sample_data/L64_Ising", "./sample_data/gap64.txt", 64);
+    
+    //run_single_run("./sample_data/L64_Ising", "./sample_data/gap64.txt", 64);
 }

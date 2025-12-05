@@ -126,7 +126,7 @@ int countSubdirectories(const fs::path& directoryPath) {
 void run_statistics(const string& input_root, const string& output_root, const int n_batches) {
     string output = "batch,L,m,se_m,X,se_X\n";
     for (int l: {8, 12, 16, 24, 32, 48, 64}) {
-        int nruns = countSubdirectories(input_root + "/" + to_string(l));
+        int nruns = 10;
         // Write string ahead of time to avoid race conditions
 	    vector<string> input_dirnames(nruns);
 	    for (int run=0; run<nruns; run++) {
@@ -172,7 +172,9 @@ int main(int argc, const char * argv[]) {
     }
     const string input = argv[1];
     const string output = argv[2];
-    const int n_batches = atoi(argv[3]);
+    //const int n_batches = atoi(argv[3]);
+    const int n_batches = 5;
+    
     run_statistics(input, output, n_batches);
     return 0;
 }

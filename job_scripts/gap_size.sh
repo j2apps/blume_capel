@@ -5,7 +5,7 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=2
 #SBATCH --cpus-per-task=4
-#SBATCH -t 4:00:00
+#SBATCH -t 8:00:00
 #SBATCH --mem=10M
 #SBATCH --job-name="gap"
 #SBATCH --output=$1/gap.txt
@@ -22,9 +22,8 @@ python3 ./corner_contribution/gen_gss_files.py $1/gap
 ./compiled/gap $1/fk $1/gap/fk
 
 echo spin
-python3 ./corner_contribution/gap_size_analysis.py $1/gap/spin $1/gap/spin.txt
-echo fk
-python3 ./corner_contribution/gap_size_analysis.py $1/gap/fk $1/gap/fk.txt
+python3 ./corner_contribution/gap_size_analysis.py $1
+
 
 
 
