@@ -329,6 +329,8 @@ int main(int argc, char *argv[])
 	meret = atoi(argv[2]);
 	int real= atoi(argv[3]);
 	int trial= atoi(argv[4]);
+	char *outfile=argv[7];
+	
 	//hatul kicsi a rendszer, felesleges annyi poziciot szamolni:
 	if (meret*meret<trial)
 		{trial=meret*meret;
@@ -361,7 +363,7 @@ int main(int argc, char *argv[])
 	MTRand mtrand(fend);
 	
 	char fs[255];	
-	sprintf(fs,"bp_%d_%d_%d_%d.cor",rid,meret,real,fend);
+	sprintf(fs,"%s/gap/square/bp_%d_%d_%d_%d.cor",outfile,rid,meret,real,fend);
 	ofstream logsta(fs, ios::out);
 	if (!logsta)
 		{cout << "Kimeneti fajl megnyitasa sikertelen!\n";

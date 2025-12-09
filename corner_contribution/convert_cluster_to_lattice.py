@@ -54,8 +54,8 @@ if __name__ == "__main__":
     nruns = int(sys.argv[3])
     output_root = f"{input_root}/lattice"
     os.makedirs(output_root, exist_ok=True)
-    sizes = (12, 16, 24, 32, 48, 64)
-    types = ("fk", "spin")
+    sizes = (8,)
+    types = ("spin",)
     runs = range(run_base, run_base+nruns)
     convert_dataset(input_root, output_root, types, sizes, runs)
     # print(convert_file(input_root, 8))
