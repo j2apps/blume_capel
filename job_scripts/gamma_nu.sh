@@ -16,4 +16,4 @@ module load gcc/12.3.0-gcc
 
 g++ ./corner_contribution/magnet.cpp -std=c++20 -fopenmp -DNUM_THREADS=4 -o ./compiled/magnet
 
-./compiled/magnet $1/spin $1/magnet.txt 5
+./compiled/magnet $1/spin $1/magnet.txt 10

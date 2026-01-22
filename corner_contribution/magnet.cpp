@@ -173,7 +173,7 @@ int main(int argc, const char * argv[]) {
     const string input = argv[1];
     const string output = argv[2];
     //const int n_batches = atoi(argv[3]);
-    const int n_batches = 5;
+    const int n_batches = 10;
     
     run_statistics(input, output, n_batches);
     return 0;

@@ -22,7 +22,7 @@ entros=( "spin" "fk" )
 
 for entropy in "${entros[@]}"; do
 echo "starting $2"
-./compiled/square $SLURM_ARRAY_TASK_ID $2 0 20 "$1/inputs/$entropy/$2/$SLURM_ARRAY_TASK_ID.txt" 123 "$1"
+./compiled/square $SLURM_ARRAY_TASK_ID $2 0 20 "$1/gap/square/inputs/$entropy/$2/$SLURM_ARRAY_TASK_ID.txt" 123 "$1/gap/square/$entropy"
 echo "finished $2"
 done
 

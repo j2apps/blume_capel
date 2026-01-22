@@ -17,15 +17,14 @@ files = {}
 for i in range(MAX_INDEX + 1):
     f = open(os.path.join(OUTPUT_DIR, f"{i}.csv"), "w", newline="")
     writer = csv.writer(f)
-    writer.writerow(["idx", "gamma", "col2", "col3", "corner_contribution", "col5", "l", "run"])
+    writer.writerow(["idx", "gamma", "corner_contribution", "L", "batch", "standard_error"])
     writers[i] = writer
     files[i] = f
 
-
 # Regex for filename: bp_{run}_{l}_0_123
-pattern = re.compile(r"bp_(\d+)_(\d+)_(\d+)_(\d+)$")
+pattern = re.compile(r"bp_(\d+)_(\d+)_(\d+)_(\d+)\.cor$")
 
-for filepath in glob(os.path.join(INPUT_DIR, "bp_*_*_*_*")):
+for filepath in glob(os.path.join(INPUT_DIR, "*.cor")):
     filename = os.path.basename(filepath)
     match = pattern.match(filename)
     if not match:
@@ -43,7 +42,7 @@ for filepath in glob(os.path.join(INPUT_DIR, "bp_*_*_*_*")):
             idx = int(parts[0])
             if 0 <= idx <= MAX_INDEX:
                 # row: [idx, five values, l, run]
-                row = parts[:6] + [l, run]
+                row = [parts[0], parts[1], parts[3]] + [l, run, 0]
                 writers[idx].writerow(row)
 
 

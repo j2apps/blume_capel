@@ -363,7 +363,7 @@ int main(int argc, char *argv[])
 	MTRand mtrand(fend);
 	
 	char fs[255];	
-	sprintf(fs,"%s/gap/square/bp_%d_%d_%d_%d.cor",outfile,rid,meret,real,fend);
+	sprintf(fs,"%s/bp_%d_%d_%d_%d.cor",outfile,rid,meret,real,fend);
 	ofstream logsta(fs, ios::out);
 	if (!logsta)
 		{cout << "Kimeneti fajl megnyitasa sikertelen!\n";
