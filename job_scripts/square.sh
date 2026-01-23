@@ -16,10 +16,9 @@
 module purge
 module load gcc/12.3.0-gcc
 
-
+python3 ./corner_contribution/generate_input_lists.py $1
 sizes=( 16 24 32 48 64 )
 entros=( "spin" "fk" )
-
 for entropy in "${entros[@]}"; do
 echo "starting $2"
 ./compiled/square $SLURM_ARRAY_TASK_ID $2 0 20 "$1/gap/square/inputs/$entropy/$2/$SLURM_ARRAY_TASK_ID.txt" 123 "$1/gap/square/$entropy"

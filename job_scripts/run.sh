@@ -9,3 +9,4 @@
 module purge all
 # 1:L, 2:file, 3:nsamples, 4:T, 5:D, 6:J, 7:name
 ./compiled/$7-$1 ${SLURM_ARRAY_TASK_ID} $2 2 $3 $4 $5 $6
+
