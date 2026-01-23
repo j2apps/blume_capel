@@ -49,6 +49,8 @@ def convert_dataset(input_root, output_root, types, sizes, runs):
                 convert_directory(input_dirname, output_dirname, L)
 
 if __name__ == "__main__":
+    # For converting entire dataset at once
+
     input_root = sys.argv[1]
     run_base = int(sys.argv[2])
     nruns = int(sys.argv[3])
@@ -59,3 +61,12 @@ if __name__ == "__main__":
     runs = range(run_base, run_base+nruns)
     convert_dataset(input_root, output_root, types, sizes, runs)
     # print(convert_file(input_root, 8))
+
+    # For converting individual runs
+    '''
+    input_dir = sys.argv[1]
+    output_dir = sys.argv[2]
+    L = sys.argv[3]
+    convert_directory(input_dir, output_dir, L)
+    '''
+

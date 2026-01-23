@@ -14,6 +14,8 @@ if __name__ == "__main__":
 		for run in range(100):
 			Path(f'./{root}/spin/{l}/{run}').mkdir(parents=True, exist_ok=True)
 			Path(f'./{root}/fk/{l}/{run}').mkdir(parents=True, exist_ok=True)
+			Path(f'./{root}/spin/{l}/{run}/lattice').mkdir(parents=True, exist_ok=True)
+			Path(f'./{root}/fk/{l}/{run}/lattice').mkdir(parents=True, exist_ok=True)
 	Path(f'./{root}/gap').mkdir(parents=True, exist_ok=True)
 	Path(f'./{root}/gap/spin').mkdir(parents=True, exist_ok=True)
 	Path(f'./{root}/gap/fk').mkdir(parents=True, exist_ok=True)
