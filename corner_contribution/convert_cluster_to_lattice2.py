@@ -35,15 +35,10 @@ def list_files_scandir(path):
     return files
 
 def convert_directory(input_dirname, output_dirname, L):
-    print(input_dirname)
     files = list_files_scandir(input_dirname)
     for filename in files:
-        print(filename)
         in_path = os.path.join(input_dirname, filename)
-        out_path = os.path.join(output_dirname, filename)
-        if os.path.exists(out_path) and os.path.getsize(out_path) > 0:
-            continue
-        with open(out_path, "w") as file:
+        with open(f"{output_dirname}/{filename}", 'w') as file:
             file.write(convert_file(in_path, L))
     
 
@@ -60,7 +55,7 @@ def convert_dataset(input_root, output_root, types, sizes, runs):
 
 if __name__ == "__main__":
     # For converting entire dataset at once
-    """
+    
     input_root = sys.argv[1]
     run_base = int(sys.argv[2])
     nruns = int(sys.argv[3])
@@ -71,14 +66,12 @@ if __name__ == "__main__":
     runs = range(run_base, run_base+nruns)
     convert_dataset(input_root, output_root, types, sizes, runs)
     # print(convert_file(input_root, 8))
-    """
-    # For converting individual runs
     
+    # For converting individual runs
+    """
     input_dir = sys.argv[1]
     output_dir = sys.argv[2]
     L = int(sys.argv[3])
-    os.makedirs(output_dir, exist_ok=True)
-    print(output_dir)
     convert_directory(input_dir, output_dir, L)
-    
+    """
 

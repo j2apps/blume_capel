@@ -123,27 +123,26 @@ int countSubdirectories(const fs::path& directoryPath) {
     return count;
 }
 
-void run_statistics(const string& input_root, const string& output_root, const int n_batches) {
+void run_statistics(const string& input_root, const string& output_root, const int n_batches, const int n_runs) {
     string output = "batch,L,m,se_m,X,se_X\n";
-    for (int l: {8, 12, 16, 24, 32, 48, 64}) {
-        int nruns = 10;
+    for (int l: {12, 16, 24, 32, 48, 64, 96}) {
         // Write string ahead of time to avoid race conditions
-	    vector<string> input_dirnames(nruns);
-	    for (int run=0; run<nruns; run++) {
+	    vector<string> input_dirnames(n_runs);
+	    for (int run=0; run<n_runs; run++) {
 		    input_dirnames[run] = input_root + "/" + to_string(l) + "/" + to_string(run);
 	    }
         // Split runs up between threads
-        vector<double> m(nruns);
-        vector<double> x(nruns);
+        vector<double> m(n_runs);
+        vector<double> x(n_runs);
         #pragma omp parallel for num_threads(NUM_THREADS)
-        for (int run = 0; run < nruns; run++) {
+        for (int run = 0; run < n_runs; run++) {
             pair<double, double> result = run_single_run(input_dirnames[run], l);
             m[run] = result.first / (l*l);
             x[run] = (result.second - result.first*result.first) / (l*l);
         }
         // Temporary batched data output
         for (int i = 0; i < n_batches; i++) {
-            const int runs_per_batch = nruns / n_batches;
+            const int runs_per_batch = n_runs / n_batches;
             vector<double> batched_m(runs_per_batch);
             vector<double> batched_x(runs_per_batch);
             for (int j = 0; j < runs_per_batch; j++) {
@@ -166,15 +165,16 @@ void run_statistics(const string& input_root, const string& output_root, const i
 int main(int argc, const char * argv[]) {
     // Ensure the correct arguments are in place
     //cout << "Starting" << endl;
-    if (argc != 4) {
+    if (argc != 5) {
         cout << argc << endl;
         return -1;
     }
     const string input = argv[1];
     const string output = argv[2];
     //const int n_batches = atoi(argv[3]);
-    const int n_batches = 10;
+    const int n_batches = atoi(argv[3]);
+    const int n_runs = atoi(argv[4]);
     
-    run_statistics(input, output, n_batches);
+    run_statistics(input, output, n_batches, n_runs);
     return 0;
 }
