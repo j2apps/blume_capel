@@ -10,6 +10,7 @@
 #include <omp.h>
 #include <stdlib.h>
 #include <sstream>
+#include <filesystem>
 
 #ifndef L_MACRO
 #define L_MACRO 8
@@ -20,6 +21,7 @@
 #endif
 
 using namespace std;
+namespace fs = std::filesystem;
 
 double B; double D; double J;
 /*
@@ -298,6 +300,32 @@ void get_lattice_from_burn(int (&lattice)[N], string burn) {
     }
 }
 
+int find_max_index(const fs::path& dir) {
+    int max_n = -1;
+
+    for (const auto& entry : fs::directory_iterator(dir)) {
+        if (!entry.is_regular_file()) continue;
+
+        std::string name = entry.path().filename().string();
+
+        // Check ".txt" extension
+        if (entry.path().extension() != ".txt") continue;
+
+        // Remove extension
+        std::string stem = entry.path().stem().string();
+
+        // Ensure filename is purely numeric
+        try {
+            int value = std::stoi(stem);
+            max_n = std::max(max_n, value);
+        } catch (...) {
+            // Ignore non-numeric filenames
+        }
+    }
+
+    return max_n;
+}
+
 int main(int argc, const char * argv[]) {
 
     for (int i = 0; i < N; i++) {
@@ -313,7 +341,7 @@ int main(int argc, const char * argv[]) {
     string root;
     int burn;
     int nsteps;
-    if (argc > 1) {
+    if (argc >= 8) {
         run = atoi(argv[1]);
         root = argv[2];
         burn = atoi(argv[3]);
@@ -347,7 +375,9 @@ int main(int argc, const char * argv[]) {
             step(lattice);
         }
         export_clusters(lattice, 1, true,
-                "./" + root + "/burn/" + to_string(L) + "_burn.txt");
+            "./" + root + "/spin/" + to_string(L) + "/" + to_string(run) + "/0.txt");
+        export_clusters(lattice, 1 - exp (-2 * B * J), true,
+            "./" + root + "/fk/" + to_string(L) + "/" + to_string(run) + "/0.txt");
 	    cout << "burnt " + to_string(L) << endl;
         if (burn == 1) {
             return 0;
@@ -355,10 +385,26 @@ int main(int argc, const char * argv[]) {
     }
 
     // If not burning in, grab the burned-in lattice
-    get_lattice_from_burn(lattice, "./" + root + "/burn/" + to_string(L) + "_burn.txt");
+	int n_existing_steps = find_max_index(
+		"./" + root + 
+		"/spin/" + 
+		to_string(L) + "/" + 
+		to_string(run));
+	
+	if (n_existing_steps >= 0) {
+		get_lattice_from_burn(lattice, 
+		"./" + root + 
+		"/spin/" + 
+		to_string(L) + "/" + 
+		to_string(run) + "/" + 
+		to_string(n_existing_steps) + ".txt");
+	}
+	else {
+		cout << "No burn-in exists" << endl;
+	}
 
     // Data collection of 9*1500N steps
-    for (int i = 0; i < nsteps; i++) {
+    for (int i = n_existing_steps + 1; i < nsteps; i++) {
         for (int j = 0; j < 9 * N; j++) {
             #pragma omp parallel num_threads(NUM_THREADS)
             {
@@ -370,6 +416,7 @@ int main(int argc, const char * argv[]) {
             "./" + root + "/spin/" + to_string(L) + "/" + to_string(run) + "/" + to_string(i) + ".txt");
         export_clusters(lattice, 1 - exp (-2 * B * J), true,
             "./" + root + "/fk/" + to_string(L) + "/" + to_string(run) + "/" + to_string(i) + ".txt");
+        /*cout << "writing to file: " << "./" + root + "/spin/" + to_string(L) + "/" + to_string(run) + "/" + to_string(i) + ".txt" << endl;*/
     }
     return 0;
 }
