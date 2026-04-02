@@ -1,0 +1,22 @@
+#!/bin/bash
+#SBATCH --account=b1140
+#SBATCH --error=error.err
+#SBATCH --partition=b1140
+#SBATCH --nodes=1
+#SBATCH --ntasks-per-node=1
+#SBATCH --cpus-per-task=4
+#SBATCH -t 6:00:00
+#SBATCH --mem=50M
+#SBATCH --output=outputs/%x
+#SBATCH --mail-type=ALL
+#SBATCH --mail-user=jonahkim2028@u.northwestern.edu
+
+module purge all
+module load gcc/12.3.0-gcc
+
+g++ ./corner_contribution/energy.cpp -std=c++20 -fopenmp -DNUM_THREADS=4 -o ./compiled/energy
+
+# ./compiled/magnet $1/spin $1/magnet_e.txt 10 10 1 1.9659875
+./compiled/energy $1/spin $1/energy.txt 10 10 1 1.9659875
+
+# 1: dirname

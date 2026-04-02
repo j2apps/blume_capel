@@ -13,6 +13,9 @@ for pair in "${pairs[@]}"; do
     read ti di <<< "$pair"
 	d=$(bc -l <<< "$D + 0.000025*$di")
 	t=$(bc -l <<< "$T + 0.000025*$ti")
-    echo T: $ti: $t
-    echo D: $di: $d
+	echo $t $d
 done
+
+
+
+

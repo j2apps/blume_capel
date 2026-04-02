@@ -19,37 +19,42 @@ def get_gap_array(filename):
             gap_size_statistics.append(int(line))
     return gap_size_statistics, num_samples
 
-def main(root, n_batches):
+def main(root, n_batches, n_runs):
     # Iterate through each L value
-    for cluster_type in ('fk', 'spin'):
+    for cluster_type in ('fk',):
         with open(f'{root}/gap/{cluster_type}.txt', 'w') as file:
             file.write('batch,L,corner_contribution,standard_error')
-        for l in (12, 16, 24, 32, 48, 64, 96):
+        for l in (16, 24, 32, 48, 64, 96):
             corner_contributions = list()
             # Find all files in the directory
-            with os.scandir(f"{root}/gap/{cluster_type}/{l}") as entries:
-                for entry in entries:
-                    # Get the stats and number of samples from each file
-                    gap_size_statistics, num_samples = get_gap_array(entry)
-                    if (num_samples==0):
-                        continue
-                    # Get the corner contribution and append
-                    corner_contribution = get_corner_contribution(gap_size_statistics, num_samples, l)
-                    corner_contributions.append(corner_contribution)
+            for i in range(n_runs):
+                entry = f"{root}/gap/{cluster_type}/{l}/{i}.txt"
+                gap_size_statistics, num_samples = get_gap_array(entry)
+                
+                if (num_samples <= 1):
+                    continue
+                # Get the corner contribution and append
+                corner_contribution = get_corner_contribution(gap_size_statistics, num_samples, l)
+                corner_contributions.append(corner_contribution)
             # Calculate the mean and SE of the corner contribution
-
+            print(len(corner_contributions))
             for i in range(n_batches):
+                print(i)
                 samples_per_batch = len(corner_contributions) // n_batches
-                mean_corner_contribution = statistics.mean(corner_contributions[i*samples_per_batch:(i+1)*samples_per_bacth])
-                stdev_corner_contribution = statistics.stdev(corner_contributions[i*samples_per_batch:(i+1)*samples_per_batch])
+                mean_corner_contribution = statistics.mean(corner_contributions[i*samples_per_batch:(i+1)*samples_per_batch])
+                if samples_per_batch >= 2:
+                    stdev_corner_contribution = statistics.stdev(corner_contributions[i*samples_per_batch:(i+1)*samples_per_batch])
+                else:
+                    stdev_corner_contribution = 0
                 with open(f'{root}/gap/{cluster_type}.txt', 'a') as file:
-                    file.write(f'\n{i},{l},{mean_corner_contribution},{stdev_corner_contribution/math.sqrt(samples_per_bucket)}')
+                    file.write(f'\n{i},{l},{mean_corner_contribution},{stdev_corner_contribution/math.sqrt(samples_per_batch)}')
             print(l, mean_corner_contribution, stdev_corner_contribution/math.sqrt(n_batches))
 
 if __name__ == "__main__":
     root = sys.argv[1]
     n_batches = int(sys.argv[2])
-    main(root, n_batches)
+    n_runs = int(sys.argv[3])
+    main(root, n_batches, n_runs)
     '''
     gap_size_statistics, num_samples = get_gap_array("./sample_data/gap.txt")
     print(gap_size_statistics)

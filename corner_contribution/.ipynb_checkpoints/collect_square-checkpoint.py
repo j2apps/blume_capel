@@ -6,19 +6,18 @@ from glob import glob
 
 # ---- CONFIG ----
 INPUT_DIR = sys.argv[1]
-OUTPUT_DIR = sys.argv[1]
+OUTPUT_DIR = INPUT_DIR
 MAX_INDEX = 10
 
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 # Prepare writers for 0.csv ... 20.csv
-c_writers = {}
-t_writers = {}
+writers = {}
 files = {}
 for i in range(MAX_INDEX + 1):
     f = open(os.path.join(OUTPUT_DIR, f"{i}.csv"), "w", newline="")
     writer = csv.writer(f)
-    writer.writerow(["idx", "gamma", "corner_contribution", "L", "batch", "standard_error"])
+    writer.writerow(["idx", "gamma", "N_cross", "N_touch", "L", "batch", "standard_error"])
     writers[i] = writer
     files[i] = f
 
@@ -42,11 +41,9 @@ for filepath in glob(os.path.join(INPUT_DIR, "*.cor")):
 
             idx = int(parts[0])
             if 0 <= idx <= MAX_INDEX:
-                # row: [idx, five values, l, run]
-                c_row = [parts[0], parts[1], parts[3]] + [l, run, 0]
-                c_writers[idx].writerow(row)
-                t_row = [parts[0], parts[1], parts[5]] + [l, run, 0]
-                t_writers[idx].writerow(row)
+                # row: [idx, gamma, crosses corner, touched corner, l, run, standard err]
+                row = [parts[0], parts[1], parts[3], parts[5]] + [l, run, 0]
+                writers[idx].writerow(row)
 
 
 # Close all output files

@@ -20,8 +20,8 @@ def convert_file(filename, L):
             curr_id += 1
         # Give unique ids to empty sites
         mask = (lattice == -1)
-        n_empty = mask.sum()
-        lattice[mask] = np.arange(curr_id, curr_id + n_empty)
+        # n_empty = mask.sum()
+        # lattice[mask] = np.arange(curr_id, curr_id + n_empty)
     # Convert lattice to str
     rows = []
     for i in range(L):
@@ -60,25 +60,25 @@ def convert_dataset(input_root, output_root, types, sizes, runs):
 
 if __name__ == "__main__":
     # For converting entire dataset at once
-    """
+    
     input_root = sys.argv[1]
     run_base = int(sys.argv[2])
     nruns = int(sys.argv[3])
     output_root = f"{input_root}/lattice"
     os.makedirs(output_root, exist_ok=True)
-    sizes = (16, 24, 32, 48, 64)
+    sizes = (16, 24, 32, 48, 64, 96)
     types = ("spin", "fk")
     runs = range(run_base, run_base+nruns)
     convert_dataset(input_root, output_root, types, sizes, runs)
     # print(convert_file(input_root, 8))
-    """
-    # For converting individual runs
     
+    # For converting individual runs
+    '''
     input_dir = sys.argv[1]
     output_dir = sys.argv[2]
     L = int(sys.argv[3])
     os.makedirs(output_dir, exist_ok=True)
     print(output_dir)
     convert_directory(input_dir, output_dir, L)
-    
+    '''
 

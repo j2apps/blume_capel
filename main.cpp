@@ -361,6 +361,7 @@ int main(int argc, const char * argv[]) {
     }
 
     int lattice[N];
+    fill(lattice, lattice + N, 0);
     // If in burn-in stage, generate new lattice
     if (burn >= 1) {
 		cout << "burning " + to_string(L) << endl;
@@ -400,7 +401,22 @@ int main(int argc, const char * argv[]) {
 		to_string(n_existing_steps) + ".txt");
 	}
 	else {
-		cout << "No burn-in exists" << endl;
+		cout << "burning " + to_string(L) << endl;
+		generate_lattice(lattice);
+
+        // Burn-in consists of 1500N "MC steps"
+        for (int i = 0; i < 1500*N; i++) {
+        #pragma omp parallel num_threads(NUM_THREADS)
+            {
+                refill_random();
+            }
+            step(lattice);
+        }
+        export_clusters(lattice, 1, true,
+            "./" + root + "/spin/" + to_string(L) + "/" + to_string(run) + "/0.txt");
+        export_clusters(lattice, 1 - exp (-2 * B * J), true,
+            "./" + root + "/fk/" + to_string(L) + "/" + to_string(run) + "/0.txt");
+	    cout << "burnt " + to_string(L) << endl;
 	}
 
     // Data collection of 9*1500N steps
@@ -414,8 +430,8 @@ int main(int argc, const char * argv[]) {
         }
         export_clusters(lattice, 1, true,
             "./" + root + "/spin/" + to_string(L) + "/" + to_string(run) + "/" + to_string(i) + ".txt");
-        export_clusters(lattice, 1 - exp (-2 * B * J), true,
-            "./" + root + "/fk/" + to_string(L) + "/" + to_string(run) + "/" + to_string(i) + ".txt");
+        /*export_clusters(lattice, 1 - exp (-2 * B * J), true,
+            "./" + root + "/fk/" + to_string(L) + "/" + to_string(run) + "/" + to_string(i) + ".txt");*/
         /*cout << "writing to file: " << "./" + root + "/spin/" + to_string(L) + "/" + to_string(run) + "/" + to_string(i) + ".txt" << endl;*/
     }
     return 0;

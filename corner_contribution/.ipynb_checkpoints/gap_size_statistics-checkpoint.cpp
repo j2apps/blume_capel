@@ -19,77 +19,31 @@ namespace fs = std::filesystem;
 #define NUM_THREADS 1
 #endif
 
-void get_cluster_gap_sizes(vector<int>& gap_size_statistics, vector<int> cluster, const int L) {
+void get_cluster_gap_sizes_old(vector<int>& gap_size_statistics, vector<vector<int>> cluster, const int L) {
+    for (const auto& line : cluster) {
+        int n = line.size();
+        if (n < 2) continue;
 
-    // Get the starting line and the starting x-posn on the line
-    int line = cluster[0] / L;
-    int posn = cluster[0] % L;
-    bool newline = true;
+        // Count all gaps
+        for (int k = 0; k < n; ++k) {
+            int a = line[k];
+            int b = line[(k + 1) % n];
+            int gap = (b - a + L) % L;
 
-    // Iterate through every site in the cluster
-    for (int i = 1; i < cluster.size(); i++) {
-
-        // Update the position of the newest site
-        int gap = cluster[i];
-        posn += gap;
-
-        // If that position is on a new line, update line
-        if (posn >= L) {
-            line += posn/L;
-            posn %= L;
-            newline = true;
-        }
-        // Otherwise, add the gap to the statistics
-        else {
-			if (gap >= L/2) {
-			    // If big gap and new line, then it is a wrap around, and
-				if (newline) {
-					gap = L - gap;
-				}
-				else {
-					continue;
-				}
-			}
-            gap_size_statistics[gap-1] += 1;
-            newline = false;
+            if (gap > L/2) gap = L - gap;
+            gap_size_statistics[gap - 1]++;
         }
     }
 }
-void get_cluster_gap_sizes(vector<int>& gap_size_statistics, vector<vector<int>> cluster, const int L) {
-    for (vector<int> line: cluster) {
-        bool largest = false;
-
-        // Special case for only 2 sites
-        if (line.size() == 2) {
-            int gap = line[1] - line[0];
-            gap = min(gap, L - gap);
-            gap_size_statistics[gap-1] ++;
-            continue;
-        }
-        // If more than 2 sites, procede
-        // Compute the gaps, include the one between the first and last element
-        for (int i = 0; i < line.size() - 1; i++) {
-            int gap = line[i+1] - line[i];
-            gap = min(gap, L - gap);
-            gap_size_statistics[gap-1] ++;
-        }
-        // Get the last and first as well
-        int gap = line[line.size() - 1] - line[0];
-        gap = min(gap, L - gap);
-        gap_size_statistics[gap-1] ++;
-    }
-}
-
 
 vector<int> splitString(const string& line) {
     vector<string> result;
     stringstream ss(line);
     string segment;
-
     while (getline(ss, segment, ' ')) {
         result.push_back(segment);
     }
-    if (result[0] == "+" || result[0] == "-") {
+    if (!result.empty()) {
         result.erase(result.begin());
     }
     vector<int> result_int;
@@ -98,32 +52,38 @@ vector<int> splitString(const string& line) {
     return result_int;
 }
 
-vector<vector<int>> convert_cluster_to_lines(vector<int> cluster, const int L) {
-    // Allocate result vector
-    vector<vector<int>> result;
+// TODO: FIX THIS FUNCTION
+void get_cluster_gss(vector<int> &cluster, vector<int> &gap_size_statistics, const int L) {
     // Get the starting position from the cluster
-    int posn = cluster[0] / L;
-    vector<int> line;
-    for (int i = 1; i < cluster.size(); i++) {
-        // Find the updated posn based on the gap
-        posn += cluster[i];
-        // If the posn is on the next line, update line and posn
-        if (posn >= L) {
-            // If the line has more than one site, append it to result
-            if (line.size() > 1) {
-                result.push_back(line);
+    int first_posn = cluster[0] % L;
+    int last_posn = first_posn;
+
+    for (int i = 1; i < cluster.size(); ++i) {
+        // Wrap-around case
+        if (last_posn + cluster[i] >= L) {
+            int gap = last_posn - first_posn;
+            if (gap > 0) {
+                if (gap > L/2) gap = L - gap;
+                gap_size_statistics[gap - 1]++;
             }
-            line.clear();
-            posn %= L;
+            last_posn += cluster[i];
+            last_posn %= L;
+            first_posn = last_posn;
         }
-        // Append posn to the appropriate line
-        line.push_back(posn);
+        // Normal case
+        else {
+            int gap = cluster[i];
+            if (gap > L/2) gap = L - gap;
+            gap_size_statistics[gap - 1]++;
+            last_posn += cluster[i];
+        }
     }
-    // Append remaining line
-    if (line.size() > 1) {
-        result.push_back(line);
+    // Last line of file
+    int gap = last_posn - first_posn;
+    if (gap > 0) {
+        if (gap > L/2) gap = L - gap;
+        gap_size_statistics[gap - 1]++;
     }
-    return result;
 }
 
 void get_sample_gap_sizes(vector<int>& gap_size_statistics, const string& filename, const int L) {
@@ -139,9 +99,29 @@ void get_sample_gap_sizes(vector<int>& gap_size_statistics, const string& filena
     while (getline(sample_file, sample_text)) {
         vector<int> cluster = splitString(sample_text);
         if (cluster.empty()) {continue;}
-        vector<vector<int>> lines = convert_cluster_to_lines(cluster, L);
-        get_cluster_gap_sizes(gap_size_statistics, lines, L);
+        // vector<vector<int>> lines = convert_cluster_to_lines(cluster, L);
+        // get_cluster_gap_sizes(gap_size_statistics, lines, L);
+        get_cluster_gss(cluster, gap_size_statistics, L);
     }
+}
+int countSubdirectories(const fs::path& directoryPath) {
+    int count = 0;
+    try {
+        if (!fs::exists(directoryPath) || !fs::is_directory(directoryPath)) {
+            cerr << "Error: Path does not exist or is not a directory." << endl;
+            return -1; // Indicate an error
+        }
+
+        for (const auto& entry : fs::directory_iterator(directoryPath)) {
+            if (fs::is_directory(entry.status())) {
+                count++;
+            }
+        }
+    } catch (const fs::filesystem_error& e) {
+        cerr << "Filesystem error: " << e.what() << endl;
+        return -1; // Indicate an error
+    }
+    return count;
 }
 
 void run_single_run(const string& input_dirname, const string& output_filename, const int L) {
@@ -169,32 +149,36 @@ void run_single_run(const string& input_dirname, const string& output_filename, 
     file.close();
 }
 
-void run_statistics(const string& input_root, const string& output_root) {
-    for (int l: {8, 16, 32, 64}) {
+void run_statistics(const string& input_root, const string& output_root, const int nruns) {
+    for (int l: {16, 24, 32, 48, 64, 96}) {
         // Write string ahead of time to avoid race conditions
-	    array<string, 100> input_dirnames;
-	    array<string, 100> output_filenames;
-	    for (int run=0; run<100; run++) {
+	    vector<string> input_dirnames(nruns);
+	    vector<string> output_filenames(nruns);
+	    for (int run=0; run<nruns; run++) {
 		    input_dirnames[run] = input_root + "/" + to_string(l) + "/" + to_string(run);
 		    output_filenames[run] = output_root + "/" + to_string(l) + "/" + to_string(run) + ".txt";
 	    }
         // Split runs up between threads
         #pragma omp parallel for num_threads(NUM_THREADS)
-        for (int run = 0; run < 100; run++) {
+        for (int run = 0; run < nruns; run++) {
             run_single_run(input_dirnames[run], output_filenames[run], l);
         }
-	
     }
 }
 int main(int argc, const char * argv[]) {
     // Ensure the correct arguments are in place
-    if (argc != 3) {
+    
+    if (argc != 4) {
+        cout << "Wrong number of args:" << endl;
         cout << argc << endl;
         return -1;
     }
 
     const string input = argv[1];
     const string output = argv[2];
-    run_statistics(input, output);
+    const int nruns = atoi(argv[3]);
+    run_statistics(input, output, nruns);
     return 0;
+    
+    //run_single_run("./sample_data/L64_Ising", "./sample_data/gap64.txt", 64);
 }

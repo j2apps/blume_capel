@@ -149,9 +149,8 @@ void run_single_run(const string& input_dirname, const string& output_filename, 
     file.close();
 }
 
-void run_statistics(const string& input_root, const string& output_root) {
-    for (int l: {8, 12, 16, 24, 32, 48, 64}) {
-        int nruns = countSubdirectories(input_root + "/" + to_string(l));
+void run_statistics(const string& input_root, const string& output_root, const int nruns) {
+    for (int l: {16, 24, 32, 48, 64, 96}) {
         // Write string ahead of time to avoid race conditions
 	    vector<string> input_dirnames(nruns);
 	    vector<string> output_filenames(nruns);
@@ -169,14 +168,16 @@ void run_statistics(const string& input_root, const string& output_root) {
 int main(int argc, const char * argv[]) {
     // Ensure the correct arguments are in place
     
-    if (argc != 3) {
+    if (argc != 4) {
+        cout << "Wrong number of args:" << endl;
         cout << argc << endl;
         return -1;
     }
 
     const string input = argv[1];
     const string output = argv[2];
-    run_statistics(input, output);
+    const int nruns = atoi(argv[3]);
+    run_statistics(input, output, nruns);
     return 0;
     
     //run_single_run("./sample_data/L64_Ising", "./sample_data/gap64.txt", 64);
